@@ -10,9 +10,8 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://schedulegenewu.vercel.app'] 
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002']
+  origin: true, // Allow all origins temporarily for debugging
+  credentials: true
 }));
 app.use(express.json());
 
