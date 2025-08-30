@@ -484,59 +484,124 @@ app.post('/api/export/csv', express.json(), (req, res) => {
   }
 });
 
-// Generate HTML for schedule export
+// Generate HTML for schedule export - matches frontend RoutineTable component
 function generateScheduleHTML(routineData) {
-  const timeSlots = [
-    '8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM',
-    '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM',
-    '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM',
-    '5:00 PM', '5:30 PM', '6:00 PM', '6:30 PM', '7:00 PM', '7:30 PM',
-    '8:00 PM', '8:30 PM', '9:00 PM'
-  ];
-
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Saturday'];
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   
-  // Create schedule grid
-  const schedule = {};
+  // Create detailed time slots: each hour divided into 6 slots (10-minute intervals)
+  const timeSlots = [];
+  for (let hour = 8; hour <= 19; hour++) {
+    for (let segment = 0; segment < 6; segment++) {
+      const minutes = segment * 10;
+      const timeStr = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      timeSlots.push(timeStr);
+    }
+  }
+
+  const timeToMinutes = (timeStr) => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  // Function to find which time slot index a course should start at
+  const getTimeSlotIndex = (timeStr) => {
+    const minutes = timeToMinutes(timeStr);
+    const baseMinutes = timeToMinutes('08:00');
+    const slotIndex = Math.floor((minutes - baseMinutes) / 10);
+    return Math.max(0, slotIndex);
+  };
+
+  // Function to calculate how many 10-minute slots a course spans
+  const getCourseDuration = (startTime, endTime) => {
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+    return Math.ceil((endMinutes - startMinutes) / 10);
+  };
+
+  const colors = [
+    '#FFB6C1', '#87CEEB', '#98FB98', '#F0E68C', '#DDA0DD',
+    '#FFE4B5', '#B0E0E6', '#FAFAD2', '#FFE4E1', '#E0E6FF'
+  ];
+  
+  const courseColors = {};
+  let colorIndex = 0;
+
+  // Group courses by day
+  const coursesByDay = {};
   days.forEach(day => {
-    schedule[day] = {};
+    coursesByDay[day] = routineData.filter(course => course.day === day);
   });
 
-  // Fill schedule grid with courses
+  // Assign colors to courses
   routineData.forEach(course => {
-    const day = course.day;
-    const startTime = course.startTime;
-    const endTime = course.endTime;
-    
-    if (schedule[day]) {
-      schedule[day][startTime] = {
-        courseCode: course.courseCode,
-        endTime: endTime,
-        room: course.room
-      };
+    if (!courseColors[course.courseCode]) {
+      courseColors[course.courseCode] = colors[colorIndex % colors.length];
+      colorIndex++;
     }
   });
 
-  // Generate HTML table
-  let tableRows = '';
-  
-  timeSlots.forEach(timeSlot => {
-    let row = `<tr><td class="time-slot">${timeSlot}</td>`;
+  // Generate time column HTML
+  let timeColumnHTML = '';
+  timeSlots.forEach((timeSlot, index) => {
+    const [hour, minute] = timeSlot.split(':').map(Number);
+    let displayTime = '';
     
-    days.forEach(day => {
-      const course = schedule[day][timeSlot];
-      if (course) {
-        row += `<td class="course-cell">
-          <div class="course-code">${course.courseCode}</div>
-          <div class="course-room">${course.room}</div>
-        </td>`;
-      } else {
-        row += '<td class="empty-cell"></td>';
-      }
+    if (minute === 0) {
+      const period = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+      displayTime = `${displayHour}:00 ${period}`;
+    }
+    
+    timeColumnHTML += `
+      <div class="time-slot" style="height: 10px; display: flex; align-items: center;">
+        <span style="font-size: 8px; color: #666;">${displayTime}</span>
+      </div>
+    `;
+  });
+
+  // Generate day columns HTML
+  let dayColumnsHTML = '';
+  days.forEach(day => {
+    let dayColumnHTML = `<div class="day-column" style="flex: 1; border-right: 1px solid #ddd; position: relative;">`;
+    
+    // Add courses for this day
+    coursesByDay[day].forEach(course => {
+      const startSlotIndex = getTimeSlotIndex(course.startTime);
+      const duration = getCourseDuration(course.startTime, course.endTime);
+      const height = duration * 10; // 10px per 10-minute slot
+      const top = startSlotIndex * 10; // Position from top
+      
+      const backgroundColor = courseColors[course.courseCode];
+      
+      dayColumnHTML += `
+        <div class="course-block" style="
+          position: absolute;
+          top: ${top}px;
+          left: 2px;
+          right: 2px;
+          height: ${height}px;
+          background-color: ${backgroundColor};
+          border: 1px solid #ccc;
+          border-radius: 3px;
+          padding: 2px;
+          font-size: 8px;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          text-align: center;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        ">
+          <div style="font-weight: bold; line-height: 1.1; margin-bottom: 1px;">${course.courseCode}</div>
+          <div style="font-size: 7px; line-height: 1; color: #444;">${course.startTime.substring(0, 5)}-${course.endTime.substring(0, 5)}</div>
+          <div style="font-size: 7px; line-height: 1; color: #666;">${course.room}</div>
+        </div>
+      `;
     });
     
-    row += '</tr>';
-    tableRows += row;
+    dayColumnHTML += `</div>`;
+    dayColumnsHTML += dayColumnHTML;
   });
 
   return `
@@ -576,56 +641,55 @@ function generateScheduleHTML(routineData) {
           color: #666;
         }
         
-        .schedule-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 11px;
-          table-layout: fixed;
+        .schedule-container {
+          border: 2px solid #333;
+          border-radius: 8px;
+          overflow: hidden;
+          margin-bottom: 20px;
         }
         
-        .schedule-table th {
+        .schedule-header {
+          display: flex;
           background-color: #f8f9fa;
-          border: 1px solid #dee2e6;
-          padding: 8px 4px;
-          text-align: center;
-          font-weight: bold;
-          color: #495057;
+          border-bottom: 2px solid #333;
         }
         
-        .schedule-table td {
-          border: 1px solid #dee2e6;
-          padding: 4px;
-          vertical-align: top;
-          height: 35px;
-        }
-        
-        .time-slot {
-          background-color: #f8f9fa;
-          font-weight: bold;
-          text-align: center;
+        .time-header {
           width: 80px;
-          font-size: 10px;
-        }
-        
-        .course-cell {
-          background-color: #e3f2fd;
+          padding: 10px 5px;
           text-align: center;
-        }
-        
-        .course-code {
           font-weight: bold;
-          font-size: 10px;
-          color: #1976d2;
-          margin-bottom: 2px;
+          font-size: 12px;
+          border-right: 1px solid #ddd;
         }
         
-        .course-room {
-          font-size: 9px;
-          color: #666;
+        .day-header {
+          flex: 1;
+          padding: 10px 5px;
+          text-align: center;
+          font-weight: bold;
+          font-size: 12px;
+          border-right: 1px solid #ddd;
         }
         
-        .empty-cell {
-          background-color: #ffffff;
+        .day-header:last-child {
+          border-right: none;
+        }
+        
+        .schedule-body {
+          display: flex;
+          height: 720px; /* 12 hours * 60px per hour */
+        }
+        
+        .time-column {
+          width: 80px;
+          border-right: 1px solid #ddd;
+          background-color: #f8f9fa;
+        }
+        
+        .day-columns {
+          flex: 1;
+          display: flex;
         }
         
         .course-summary {
@@ -649,8 +713,7 @@ function generateScheduleHTML(routineData) {
           display: inline-flex;
           align-items: center;
           padding: 4px 8px;
-          background-color: #e3f2fd;
-          border: 1px solid #bbdefb;
+          border: 1px solid #ccc;
           border-radius: 4px;
           font-size: 10px;
         }
@@ -659,13 +722,12 @@ function generateScheduleHTML(routineData) {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background-color: #1976d2;
           margin-right: 5px;
         }
         
         @media print {
           body { margin: 0; padding: 15px; }
-          .schedule-table { font-size: 10px; }
+          .schedule-container { margin-bottom: 15px; }
         }
       </style>
     </head>
@@ -675,29 +737,28 @@ function generateScheduleHTML(routineData) {
         <p>Generated on ${new Date().toLocaleDateString()}</p>
       </div>
       
-      <table class="schedule-table">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Sunday</th>
-            <th>Monday</th>
-            <th>Tuesday</th>
-            <th>Wednesday</th>
-            <th>Thursday</th>
-            <th>Saturday</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRows}
-        </tbody>
-      </table>
+      <div class="schedule-container">
+        <div class="schedule-header">
+          <div class="time-header">Time</div>
+          ${days.map(day => `<div class="day-header">${day}</div>`).join('')}
+        </div>
+        
+        <div class="schedule-body">
+          <div class="time-column">
+            ${timeColumnHTML}
+          </div>
+          <div class="day-columns">
+            ${dayColumnsHTML}
+          </div>
+        </div>
+      </div>
       
       <div class="course-summary">
         <h3>Course Summary</h3>
         <div class="course-list">
           ${[...new Set(routineData.map(course => course.courseCode))].map(courseCode => 
-            `<div class="course-item">
-              <div class="course-indicator"></div>
+            `<div class="course-item" style="background-color: ${courseColors[courseCode]};">
+              <div class="course-indicator" style="background-color: ${courseColors[courseCode]};"></div>
               ${courseCode}
             </div>`
           ).join('')}
