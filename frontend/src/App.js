@@ -312,7 +312,6 @@ function App() {
                   onClick={() => {
                     setRoutineData([]);
                     setError('');
-                    setSuccessMessage('');
                     setLoading(false);
                   }}
                   className="upload-new-btn"
