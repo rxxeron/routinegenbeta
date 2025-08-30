@@ -767,8 +767,8 @@ body {
     overflow: hidden;
     margin-top: 15px;
     width: 100%;
-    max-width: 100vw;
-    padding: 0;
+    max-width: 100%;
+    padding: 0 5px;
   }
   
   .routine-container {
@@ -777,35 +777,35 @@ body {
   
   .schedule-grid {
     width: 100%;
-    max-width: 100vw;
-    grid-template-columns: 50px repeat(7, 1fr);
+    max-width: 100%;
+    grid-template-columns: 40px repeat(7, 1fr);
     overflow: visible;
-    font-size: 11px;
-    min-height: 600px;
+    font-size: 10px;
+    min-height: 500px;
   }
   
-  .day-monday { left: 50px; }
-  .day-tuesday { left: calc(50px + (100vw - 50px) / 7 * 1); }
-  .day-wednesday { left: calc(50px + (100vw - 50px) / 7 * 2); }
-  .day-thursday { left: calc(50px + (100vw - 50px) / 7 * 3); }
-  .day-friday { left: calc(50px + (100vw - 50px) / 7 * 4); }
-  .day-saturday { left: calc(50px + (100vw - 50px) / 7 * 5); }
-  .day-sunday { left: calc(50px + (100vw - 50px) / 7 * 6); }
+  .day-monday { left: 40px; width: calc((100% - 40px) / 7); }
+  .day-tuesday { left: calc(40px + (100% - 40px) / 7 * 1); width: calc((100% - 40px) / 7); }
+  .day-wednesday { left: calc(40px + (100% - 40px) / 7 * 2); width: calc((100% - 40px) / 7); }
+  .day-thursday { left: calc(40px + (100% - 40px) / 7 * 3); width: calc((100% - 40px) / 7); }
+  .day-friday { left: calc(40px + (100% - 40px) / 7 * 4); width: calc((100% - 40px) / 7); }
+  .day-saturday { left: calc(40px + (100% - 40px) / 7 * 5); width: calc((100% - 40px) / 7); }
+  .day-sunday { left: calc(40px + (100% - 40px) / 7 * 6); width: calc((100% - 40px) / 7); }
   
   .day-column {
-    width: calc((100vw - 50px) / 7);
+    width: calc((100% - 40px) / 7);
   }
   
   .time-cell {
-    font-size: 9px;
-    padding: 4px 2px;
-    height: 50px;
-    width: 50px;
+    font-size: 8px;
+    padding: 3px 1px;
+    height: 40px;
+    width: 40px;
     line-height: 1.1;
   }
   
   .schedule-cell {
-    height: 50px;
+    height: 40px;
   }
   
   .header-cell {
@@ -993,24 +993,24 @@ body {
   }
   
   .schedule-grid {
-    width: 100vw;
-    max-width: 100vw;
+    width: 100%;
+    max-width: 100%;
     grid-template-columns: 25px repeat(7, 1fr);
-    min-height: 500px;
+    min-height: 400px;
     overflow: hidden;
     border: none;
   }
   
-  .day-monday { left: 25px; }
-  .day-tuesday { left: calc(25px + (100vw - 25px) / 7 * 1); }
-  .day-wednesday { left: calc(25px + (100vw - 25px) / 7 * 2); }
-  .day-thursday { left: calc(25px + (100vw - 25px) / 7 * 3); }
-  .day-friday { left: calc(25px + (100vw - 25px) / 7 * 4); }
-  .day-saturday { left: calc(25px + (100vw - 25px) / 7 * 5); }
-  .day-sunday { left: calc(25px + (100vw - 25px) / 7 * 6); }
+  .day-monday { left: 25px; width: calc((100% - 25px) / 7); }
+  .day-tuesday { left: calc(25px + (100% - 25px) / 7 * 1); width: calc((100% - 25px) / 7); }
+  .day-wednesday { left: calc(25px + (100% - 25px) / 7 * 2); width: calc((100% - 25px) / 7); }
+  .day-thursday { left: calc(25px + (100% - 25px) / 7 * 3); width: calc((100% - 25px) / 7); }
+  .day-friday { left: calc(25px + (100% - 25px) / 7 * 4); width: calc((100% - 25px) / 7); }
+  .day-saturday { left: calc(25px + (100% - 25px) / 7 * 5); width: calc((100% - 25px) / 7); }
+  .day-sunday { left: calc(25px + (100% - 25px) / 7 * 6); width: calc((100% - 25px) / 7); }
   
   .day-column {
-    width: calc((100vw - 25px) / 7);
+    width: calc((100% - 25px) / 7);
   }
   
   .time-cell {
@@ -1050,11 +1050,13 @@ body {
   }
   
   .course-block {
-    padding: 3px;
+    padding: 2px;
     margin: 1px;
     border-width: 1px;
-    font-size: 8px;
-    min-height: 40px;
+    font-size: 7px;
+    min-height: 30px;
+    left: 1px !important;
+    right: 1px !important;
   }
   
   .course-code {
