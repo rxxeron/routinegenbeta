@@ -91,19 +91,36 @@ const RoutineTable = ({ routineData }) => {
                       const duration = getCourseDuration(course.startTime, course.endTime);
                       const height = duration * 10; // 10px per 10-minute slot
                       
-                      // Calculate dynamic font sizes based on available height and width
-                      const containerWidth = window.innerWidth < 480 ? 35 : window.innerWidth < 768 ? 50 : 80;
-                      const widthFactor = containerWidth / 80; // Base width factor
+                      // Use different sizing strategies for desktop vs mobile
+                      const isMobileDevice = window.innerWidth < 768;
                       
-                      const baseFontSize = Math.max(6, Math.min(16, height / 5 * widthFactor));
-                      const codeFontSize = Math.max(7, Math.min(18, height / 3.5 * widthFactor));
-                      const timeFontSize = Math.max(5, Math.min(14, height / 7 * widthFactor));
-                      const roomFontSize = Math.max(5, Math.min(12, height / 9 * widthFactor));
+                      if (isMobileDevice) {
+                        // Mobile: Calculate optimal font sizes to fit content
+                        const containerWidth = window.innerWidth < 480 ? 35 : 50;
+                        
+                        // Calculate based on content length and available space for mobile
+                        const courseText = course.courseCode;
+                        const timeText = `${course.startTime.substring(0, 5)}-${course.endTime.substring(0, 5)}`;
+                        const roomText = course.room;
+                        
+                        // Calculate optimal sizes based on text length and container size
+                        var codeFontSize = Math.min(12, Math.max(6, (containerWidth * 0.8) / Math.max(courseText.length * 0.6, 4)));
+                        var timeFontSize = Math.min(14, Math.max(7, (containerWidth * 0.9) / Math.max(timeText.length * 0.5, 6)));
+                        var roomFontSize = Math.min(12, Math.max(6, (containerWidth * 0.8) / Math.max(roomText.length * 0.6, 4)));
+                      } else {
+                        // Desktop: Use generous, readable sizes based on height
+                        var codeFontSize = Math.max(10, Math.min(16, height / 5));
+                        var timeFontSize = Math.max(12, Math.min(18, height / 3.5));
+                        var roomFontSize = Math.max(10, Math.min(16, height / 4.5));
+                      }
                       
-                      // Determine content strategy based on height and available space
-                      const showTime = height > 25;
-                      const showRoom = height > 40;
-                      const showFullContent = height > 60;
+                      // More generous content thresholds, especially for mobile
+                      const isMobileDisplay = window.innerWidth < 480;
+                      const isTabletDisplay = window.innerWidth < 768;
+                      
+                      const showTime = isMobileDisplay ? height > 15 : isTabletDisplay ? height > 18 : height > 20;
+                      const showRoom = isMobileDisplay ? height > 30 : isTabletDisplay ? height > 32 : height > 35;
+                      const showFullContent = height > 55;
                       
                       return (
                         <div
@@ -116,8 +133,7 @@ const RoutineTable = ({ routineData }) => {
                             width: 'calc(100% - 2px)',
                             left: '1px',
                             top: '0',
-                            zIndex: 1,
-                            fontSize: `${baseFontSize}px`
+                            zIndex: 1
                           }}
                         >
                           <div className="course-content">
@@ -126,28 +142,27 @@ const RoutineTable = ({ routineData }) => {
                               style={{ 
                                 fontSize: `${codeFontSize}px`,
                                 lineHeight: '1.1',
-                                marginBottom: showTime ? '1px' : '0'
+                                marginBottom: showTime ? '2px' : '0',
+                                fontWeight: 'normal',
+                                opacity: 0.7
                               }}
                             >
-                              {showFullContent ? course.courseCode : 
-                               height < 30 ? course.courseCode.substring(0, 8) :
-                               height < 50 ? course.courseCode.substring(0, 12) :
-                               course.courseCode}
+                              {isMobileDevice ? course.courseCode : course.courseCode}
                             </div>
                             {showTime && (
                               <div 
                                 className="course-time"
                                 style={{ 
                                   fontSize: `${timeFontSize}px`,
-                                  lineHeight: '1',
-                                  marginBottom: showRoom ? '1px' : '0'
+                                  lineHeight: '1.1',
+                                  marginBottom: showRoom ? '2px' : '0',
+                                  fontWeight: 'bold',
+                                  color: '#1a1a1a'
                                 }}
                               >
-                                {height < 40 
-                                  ? `${course.startTime.substring(0, 5)}`
-                                  : showFullContent 
-                                  ? `${course.startTime} - ${course.endTime}`
-                                  : `${course.startTime.substring(0, 5)}-${course.endTime.substring(0, 5)}`
+                                {isMobileDevice
+                                  ? `${course.startTime.substring(0, 5)}-${course.endTime.substring(0, 5)}`
+                                  : `${course.startTime} - ${course.endTime}`
                                 }
                               </div>
                             )}
@@ -156,10 +171,12 @@ const RoutineTable = ({ routineData }) => {
                                 className="course-room"
                                 style={{ 
                                   fontSize: `${roomFontSize}px`,
-                                  lineHeight: '1'
+                                  lineHeight: '1.1',
+                                  fontWeight: 'bold',
+                                  color: '#2c5aa0'
                                 }}
                               >
-                                {height < 60 ? course.room.substring(0, 8) : course.room}
+                                {course.room}
                               </div>
                             )}
                           </div>
