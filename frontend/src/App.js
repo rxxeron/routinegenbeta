@@ -257,6 +257,7 @@ function App() {
 
   return (
     <div className="App">
+      {/* Modern EWU-themed Schedule Generator */}
       <header className="App-header">
         <h1>Schedule Generator for EWU Students!</h1>
         <p>Upload your Advising Slip - Weekly Schedule Appears Instantly with download option.</p>
