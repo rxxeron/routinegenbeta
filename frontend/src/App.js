@@ -34,7 +34,6 @@ function App() {
     try {
       setLoading(true);
       
-      // Check if jsPDF is available with multiple fallbacks
       let jsPDFConstructor = null;
       
       if (window.jsPDF) {
@@ -95,13 +94,10 @@ function App() {
       exportWrapper.appendChild(titleDiv);
       exportWrapper.appendChild(scheduleClone);
       
-      // Add to document
       document.body.appendChild(exportWrapper);
 
-      // Wait for rendering
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Capture with html2canvas
       const canvas = await window.html2canvas(exportWrapper, {
         backgroundColor: '#ffffff',
         scale: 2,
@@ -114,10 +110,8 @@ function App() {
         logging: false
       });
 
-      // Remove the temporary element
       document.body.removeChild(exportWrapper);
 
-      // Create PDF
       const pdf = new jsPDFConstructor({
         orientation: 'landscape',
         unit: 'mm',
@@ -225,10 +219,9 @@ function App() {
       // Wait for rendering
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Capture with html2canvas
       const canvas = await window.html2canvas(exportWrapper, {
         backgroundColor: '#ffffff',
-        scale: 3, // Higher scale for better PNG quality
+        scale: 3, 
         useCORS: true,
         allowTaint: true,
         width: 1200,
@@ -238,10 +231,8 @@ function App() {
         logging: false
       });
 
-      // Remove the temporary element
       document.body.removeChild(exportWrapper);
       
-      // Download the PNG
       const link = document.createElement('a');
       link.href = canvas.toDataURL('image/png');
       link.download = 'weekly-schedule.png';
@@ -258,14 +249,12 @@ function App() {
 
   return (
     <div className="App">
-      {/* Modern EWU-themed Schedule Generator */}
       <header className="App-header">
         <h1>Schedule Generator for EWU Students!</h1>
         <p>Upload your Advising Slip - Weekly Schedule Appears Instantly with&nbsp;download&nbsp;option.</p>
       </header>
       
       <main className="App-main">
-        {/* Show upload section only when no data is loaded */}
         {routineData.length === 0 && (
           <>
             <FileUpload 
@@ -276,7 +265,7 @@ function App() {
             
             {loading && (
               <div className="loading">
-                <p>📊 Processing your file and generating schedule...</p>
+                <p>Processing your file and generating schedule...</p>
               </div>
             )}
             
@@ -288,7 +277,6 @@ function App() {
           </>
         )}
         
-        {/* Show schedule section when data is loaded */}
         {routineData.length > 0 && (
           <div className="routine-container">
             <div className="schedule-header">
@@ -300,14 +288,14 @@ function App() {
                     className="export-btn export-pdf"
                     disabled={loading}
                   >
-                    📄 Download PDF
+                    Download PDF
                   </button>
                   <button 
                     onClick={handleExportPNG} 
                     className="export-btn export-png"
                     disabled={loading}
                   >
-                    🖼️ Save as Image
+                    Save as Image
                   </button>
                 </div>
                 <button 
@@ -318,14 +306,14 @@ function App() {
                   }}
                   className="upload-new-btn"
                 >
-                  📁 Upload New File
+                  Upload New File
                 </button>
               </div>
             </div>
             
             {loading && (
               <div className="loading">
-                <p>📊 Generating your export...</p>
+                <p>Generating your export...</p>
               </div>
             )}
             

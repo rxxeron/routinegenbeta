@@ -12,7 +12,7 @@ function App() {
   const handleDataReceived = (data) => {
     setRoutineData(data);
     setError('');
-    setSuccessMessage(`✅ Successfully loaded ${data.length} courses! Opening colorful PDF...`);
+    setSuccessMessage(`Successfully loaded ${data.length} courses! Opening colorful PDF...`);
     
     // Automatically show PDF after data is loaded with a longer delay
     if (data && data.length > 0) {
@@ -208,7 +208,7 @@ function App() {
         
         {loading && (
           <div className="loading">
-            <p>📊 Processing your file and generating colorful schedule...</p>
+            <p>Processing your file and generating colorful schedule...</p>
           </div>
         )}
         
