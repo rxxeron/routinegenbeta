@@ -82,36 +82,39 @@ function App() {
         width: scheduleElement.scrollWidth,
         height: scheduleElement.scrollHeight
       });
+      
+      // Detect if user is on mobile device
+      const isMobileDevice = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
       const { jsPDF } = window.jsPDF;
       const pdf = new jsPDF({
-        orientation: 'landscape',
+        orientation: isMobileDevice ? 'portrait' : 'landscape',
         unit: 'mm',
         format: 'a4'
       });
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      const canvasWidth = canvas.width;
-      const canvasHeight = canvas.height;
-      const widthScale = pdfWidth / canvasWidth;
-      const heightScale = pdfHeight / canvasHeight;
-      const scale = Math.min(widthScale, heightScale) * 0.9; // 0.9 for margins
-      const scaledWidth = canvasWidth * scale;
-      const scaledHeight = canvasHeight * scale;
-      const x = (pdfWidth - scaledWidth) / 2;
-      const y = (pdfHeight - scaledHeight) / 2;
+      
+      // Always use full page - scale to fit entire page with small margins
+      const margin = 10; // 10mm margin on all sides
+      const availableWidth = pdfWidth - (margin * 2);
+      const availableHeight = pdfHeight - (margin * 2) - 20; // Extra space for title
+      
+      // Add title
       pdf.setFontSize(20);
       pdf.setTextColor(40, 40, 40);
       pdf.text('Weekly Class Schedule', pdfWidth / 2, 15, { align: 'center' });
-      pdf.setFontSize(12);
-      pdf.text(`Generated on ${new Date().toLocaleDateString()}`, pdfWidth / 2, 22, { align: 'center' });
+      
       const imgData = canvas.toDataURL('image/png');
-      pdf.addImage(imgData, 'PNG', x, y + 10, scaledWidth, scaledHeight);
+      
+      // Add full-page image that fills the available space
+      pdf.addImage(imgData, 'PNG', margin, margin + 15, availableWidth, availableHeight);
       const uniqueCourses = [...new Set(dataToUse.map(course => course.courseCode))];
       if (uniqueCourses.length > 0) {
         pdf.setFontSize(10);
         pdf.text('Courses: ' + uniqueCourses.join(', '), 10, pdfHeight - 10);
       }
-      pdf.save('weekly-schedule.pdf');
+      pdf.save(`weekly-schedule-${isMobileDevice ? 'portrait' : 'landscape'}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
       setError('Failed to generate PDF: ' + error.message);
@@ -160,18 +163,57 @@ function App() {
         routineTable.style.padding = '0';
       }
       await new Promise(r => setTimeout(r, 100));
+      
+      // Detect if user is on mobile device
+      const isMobileDevice = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
       if (window.html2canvas) {
-        const canvas = await window.html2canvas(scheduleElement, {
+        // Create initial canvas of the schedule
+        const originalCanvas = await window.html2canvas(scheduleElement, {
           backgroundColor: '#ffffff',
-          scale: 2,
+          scale: isMobileDevice ? 3 : 2,
           useCORS: true,
           allowTaint: true
         });
-        canvas.toBlob((blob) => {
+        
+        // Create a new standardized full-page canvas
+        const standardCanvas = document.createElement('canvas');
+        const ctx = standardCanvas.getContext('2d');
+        
+        // Set standard page dimensions (A4 proportions)
+        if (isMobileDevice) {
+          // Portrait orientation for mobile
+          standardCanvas.width = 2480; // A4 portrait width at 300 DPI
+          standardCanvas.height = 3508; // A4 portrait height at 300 DPI
+        } else {
+          // Landscape orientation for desktop
+          standardCanvas.width = 3508; // A4 landscape width at 300 DPI
+          standardCanvas.height = 2480; // A4 landscape height at 300 DPI
+        }
+        
+        // Fill with white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, standardCanvas.width, standardCanvas.height);
+        
+        // Add title
+        ctx.fillStyle = '#282828';
+        ctx.font = 'bold 60px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Weekly Class Schedule', standardCanvas.width / 2, 100);
+        
+        // Calculate dimensions to fit the schedule with margins
+        const margin = 100;
+        const availableWidth = standardCanvas.width - (margin * 2);
+        const availableHeight = standardCanvas.height - (margin * 2) - 120; // Extra space for title
+        
+        // Draw the schedule to fill the available space
+        ctx.drawImage(originalCanvas, margin, margin + 120, availableWidth, availableHeight);
+        
+        standardCanvas.toBlob((blob) => {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'weekly-schedule.png';
+          a.download = `weekly-schedule-${isMobileDevice ? 'mobile' : 'desktop'}.png`;
           document.body.appendChild(a);
           a.click();
           URL.revokeObjectURL(url);
