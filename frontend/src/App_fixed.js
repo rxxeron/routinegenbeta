@@ -34,26 +34,46 @@ function App() {
 
   const handleExportPDF = async (dataToExport = null) => {
     const dataToUse = dataToExport || routineData;
-    
     if (!dataToUse || dataToUse.length === 0) {
       setError('No schedule data to export');
       return;
     }
-
+    // Store original styles
+    const scheduleElement = document.querySelector('.schedule-grid');
+    const routineContainer = scheduleElement?.closest('.routine-container');
+    const routineTable = scheduleElement?.closest('.routine-table');
+    const originalStyles = {
+      schedule: scheduleElement ? scheduleElement.style.cssText : '',
+      container: routineContainer ? routineContainer.style.cssText : '',
+      table: routineTable ? routineTable.style.cssText : ''
+    };
     try {
       setLoading(true);
-      
       if (!window.jsPDF) {
         setError('PDF library not loaded. Please refresh the page and try again.');
         return;
       }
-
-      const scheduleElement = document.querySelector('.schedule-grid');
-      if (!scheduleElement) {
-        setError('Schedule not found on page');
-        return;
+      // Force full width, no margin/padding for export
+      if (scheduleElement) {
+        scheduleElement.style.width = '100vw';
+        scheduleElement.style.maxWidth = '100vw';
+        scheduleElement.style.margin = '0';
+        scheduleElement.style.padding = '0';
       }
-
+      if (routineContainer) {
+        routineContainer.style.width = '100vw';
+        routineContainer.style.maxWidth = '100vw';
+        routineContainer.style.margin = '0';
+        routineContainer.style.padding = '0';
+      }
+      if (routineTable) {
+        routineTable.style.width = '100vw';
+        routineTable.style.maxWidth = '100vw';
+        routineTable.style.margin = '0';
+        routineTable.style.padding = '0';
+      }
+      // Wait for style to apply
+      await new Promise(r => setTimeout(r, 100));
       const canvas = await window.html2canvas(scheduleElement, {
         backgroundColor: '#ffffff',
         scale: 2,
@@ -62,51 +82,44 @@ function App() {
         width: scheduleElement.scrollWidth,
         height: scheduleElement.scrollHeight
       });
-
       const { jsPDF } = window.jsPDF;
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
         format: 'a4'
       });
-
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
-      
       const widthScale = pdfWidth / canvasWidth;
       const heightScale = pdfHeight / canvasHeight;
       const scale = Math.min(widthScale, heightScale) * 0.9; // 0.9 for margins
-      
       const scaledWidth = canvasWidth * scale;
       const scaledHeight = canvasHeight * scale;
-      
       const x = (pdfWidth - scaledWidth) / 2;
       const y = (pdfHeight - scaledHeight) / 2;
-
       pdf.setFontSize(20);
       pdf.setTextColor(40, 40, 40);
       pdf.text('Weekly Class Schedule', pdfWidth / 2, 15, { align: 'center' });
-      
       pdf.setFontSize(12);
       pdf.text(`Generated on ${new Date().toLocaleDateString()}`, pdfWidth / 2, 22, { align: 'center' });
-
       const imgData = canvas.toDataURL('image/png');
       pdf.addImage(imgData, 'PNG', x, y + 10, scaledWidth, scaledHeight);
-
       const uniqueCourses = [...new Set(dataToUse.map(course => course.courseCode))];
       if (uniqueCourses.length > 0) {
         pdf.setFontSize(10);
         pdf.text('Courses: ' + uniqueCourses.join(', '), 10, pdfHeight - 10);
       }
-
       pdf.save('weekly-schedule.pdf');
-      
     } catch (error) {
       console.error('Error generating PDF:', error);
       setError('Failed to generate PDF: ' + error.message);
     } finally {
+      // Restore original styles
+      if (scheduleElement) scheduleElement.style.cssText = originalStyles.schedule;
+      if (routineContainer) routineContainer.style.cssText = originalStyles.container;
+      if (routineTable) routineTable.style.cssText = originalStyles.table;
       setLoading(false);
     }
   };
@@ -119,12 +132,34 @@ function App() {
 
     try {
       setLoading(true);
-      
       const scheduleElement = document.querySelector('.schedule-grid');
-      if (!scheduleElement) {
-        throw new Error('Schedule not found');
+      const routineContainer = scheduleElement?.closest('.routine-container');
+      const routineTable = scheduleElement?.closest('.routine-table');
+      const originalStyles = {
+        schedule: scheduleElement ? scheduleElement.style.cssText : '',
+        container: routineContainer ? routineContainer.style.cssText : '',
+        table: routineTable ? routineTable.style.cssText : ''
+      };
+      // Force full width, no margin/padding for export
+      if (scheduleElement) {
+        scheduleElement.style.width = '100vw';
+        scheduleElement.style.maxWidth = '100vw';
+        scheduleElement.style.margin = '0';
+        scheduleElement.style.padding = '0';
       }
-
+      if (routineContainer) {
+        routineContainer.style.width = '100vw';
+        routineContainer.style.maxWidth = '100vw';
+        routineContainer.style.margin = '0';
+        routineContainer.style.padding = '0';
+      }
+      if (routineTable) {
+        routineTable.style.width = '100vw';
+        routineTable.style.maxWidth = '100vw';
+        routineTable.style.margin = '0';
+        routineTable.style.padding = '0';
+      }
+      await new Promise(r => setTimeout(r, 100));
       if (window.html2canvas) {
         const canvas = await window.html2canvas(scheduleElement, {
           backgroundColor: '#ffffff',
@@ -132,7 +167,6 @@ function App() {
           useCORS: true,
           allowTaint: true
         });
-        
         canvas.toBlob((blob) => {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -151,11 +185,9 @@ function App() {
           },
           body: JSON.stringify({ courses: routineData }),
         });
-
         if (!response.ok) {
           throw new Error('Failed to export data');
         }
-
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -165,12 +197,14 @@ function App() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        
         setError('PNG export not available. Downloaded as CSV instead.');
       }
-      
+      // Restore original styles
+      if (scheduleElement) scheduleElement.style.cssText = originalStyles.schedule;
+      if (routineContainer) routineContainer.style.cssText = originalStyles.container;
+      if (routineTable) routineTable.style.cssText = originalStyles.table;
     } catch (error) {
-      setError('Failed to export image: ' + error.message);
+      setError('Failed to export PNG: ' + error.message);
     } finally {
       setLoading(false);
     }
