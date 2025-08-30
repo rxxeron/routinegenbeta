@@ -93,6 +93,7 @@ const RoutineTable = ({ routineData }) => {
                       
                       // Use different sizing strategies for desktop vs mobile
                       const isMobileDevice = window.innerWidth < 768;
+                      let codeFontSize, timeFontSize, roomFontSize;
                       
                       if (isMobileDevice) {
                         // Mobile: Calculate optimal font sizes to fit content
@@ -104,14 +105,14 @@ const RoutineTable = ({ routineData }) => {
                         const roomText = course.room;
                         
                         // Calculate optimal sizes based on text length and container size
-                        var codeFontSize = Math.min(12, Math.max(6, (containerWidth * 0.8) / Math.max(courseText.length * 0.6, 4)));
-                        var timeFontSize = Math.min(14, Math.max(7, (containerWidth * 0.9) / Math.max(timeText.length * 0.5, 6)));
-                        var roomFontSize = Math.min(12, Math.max(6, (containerWidth * 0.8) / Math.max(roomText.length * 0.6, 4)));
+                        codeFontSize = Math.min(12, Math.max(6, (containerWidth * 0.8) / Math.max(courseText.length * 0.6, 4)));
+                        timeFontSize = Math.min(14, Math.max(7, (containerWidth * 0.9) / Math.max(timeText.length * 0.5, 6)));
+                        roomFontSize = Math.min(12, Math.max(6, (containerWidth * 0.8) / Math.max(roomText.length * 0.6, 4)));
                       } else {
                         // Desktop: Use generous, readable sizes based on height
-                        var codeFontSize = Math.max(10, Math.min(16, height / 5));
-                        var timeFontSize = Math.max(12, Math.min(18, height / 3.5));
-                        var roomFontSize = Math.max(10, Math.min(16, height / 4.5));
+                        codeFontSize = Math.max(10, Math.min(16, height / 5));
+                        timeFontSize = Math.max(12, Math.min(18, height / 3.5));
+                        roomFontSize = Math.max(10, Math.min(16, height / 4.5));
                       }
                       
                       // More generous content thresholds, especially for mobile
@@ -120,7 +121,6 @@ const RoutineTable = ({ routineData }) => {
                       
                       const showTime = isMobileDisplay ? height > 15 : isTabletDisplay ? height > 18 : height > 20;
                       const showRoom = isMobileDisplay ? height > 30 : isTabletDisplay ? height > 32 : height > 35;
-                      const showFullContent = height > 55;
                       
                       return (
                         <div
