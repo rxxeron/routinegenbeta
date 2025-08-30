@@ -7,33 +7,19 @@ function App() {
   const [routineData, setRoutineData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
 
   const handleDataReceived = (data) => {
     setRoutineData(data);
     setError('');
-    setSuccessMessage(`✅ Successfully loaded ${data.length} courses!`);
   };
 
   const handleError = (errorMessage) => {
     setError(errorMessage);
     setRoutineData([]);
-    setSuccessMessage('');
   };
 
   const handleLoadingChange = (isLoading) => {
     setLoading(isLoading);
-  };
-
-  // Test function to check backend connection
-  const testBackendConnection = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/api/health');
-      const data = await response.json();
-      alert('Backend test successful: ' + JSON.stringify(data));
-    } catch (error) {
-      alert('Backend test failed: ' + error.message);
-    }
   };
 
   const handleExportPDF = async () => {
