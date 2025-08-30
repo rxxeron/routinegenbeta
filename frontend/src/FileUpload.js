@@ -95,19 +95,9 @@ const FileUpload = ({ onDataReceived, onError, onLoadingChange }) => {
         
         {!selectedFile && (
           <p className="upload-instruction">
-            Select a CSV file - it will be processed automatically
+            Upload your Advising Slip - it will be processed automatically
           </p>
         )}
-      </div>
-      
-      <div className="format-info">
-        <h3>Expected File Format:</h3>
-        <ul>
-          <li>CSV or Excel file (.csv, .xlsx, .xls)</li>
-          <li>Must contain a "Course(s)" column header</li>
-          <li>Must contain "Time-WeekDay" and "Room" columns</li>
-          <li>Day codes: S=Sunday, M=Monday, T=Tuesday, W=Wednesday, R=Thursday, A=Saturday</li>
-        </ul>
       </div>
     </div>
   );

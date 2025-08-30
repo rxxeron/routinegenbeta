@@ -1,70 +1,163 @@
-/* App.css - Styling for RoutineGen Application */
+/* Modern EWU-Themed Schedule Generator */
 
-.App {
-  text-align: center;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: 'Arial', sans-serif;
+:root {
+  /* EWU Color Palette */
+  --ewu-primary: #1e3d59;      /* Deep Blue */
+  --ewu-secondary: #17a2b8;    /* Teal Blue */
+  --ewu-accent: #28a745;       /* Success Green */
+  --ewu-gold: #ffc107;         /* Gold Accent */
+  --ewu-light: #f8f9fa;        /* Light Background */
+  --ewu-dark: #343a40;         /* Dark Text */
+  --ewu-gradient: linear-gradient(135deg, #1e3d59 0%, #17a2b8 100%);
+  
+  /* Modern Typography */
+  --font-primary: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  
+  /* Spacing */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+  
+  /* Borders */
+  --border-radius: 12px;
+  --border-radius-lg: 16px;
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-primary);
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+  color: var(--ewu-dark);
+  line-height: 1.6;
+}
+
+.App {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-md);
+  min-height: 100vh;
+}
+
+/* Modern Header Design */
 .App-header {
-  background-color: #282c34;
-  padding: 20px;
-  color: white;
-  border-radius: 8px;
-  margin-bottom: 30px;
+  background: var(--ewu-gradient);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--spacing-xl);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.App-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23ffffff" fill-opacity="0.1"><path d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/></g></g></svg>') repeat;
+  opacity: 0.1;
 }
 
 .App-header h1 {
-  margin: 0 0 10px 0;
-  font-size: 2.5rem;
+  position: relative;
+  color: white;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .App-header p {
-  margin: 0;
-  font-size: 1.1rem;
-  opacity: 0.9;
+  position: relative;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  font-weight: var(--font-weight-normal);
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .App-main {
   min-height: 60vh;
 }
 
-/* File Upload Styles */
+/* Modern File Upload Design */
 .file-upload {
-  background: #f8f9fa;
-  padding: 30px;
-  border-radius: 8px;
-  border: 2px dashed #dee2e6;
-  margin-bottom: 30px;
+  background: white;
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
+  box-shadow: var(--shadow-md);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.file-upload:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .upload-section {
-  margin-bottom: 20px;
+  text-align: center;
 }
 
 .file-input-label {
-  display: inline-block;
-  padding: 12px 24px;
-  background-color: #007bff;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: var(--ewu-gradient);
   color: white;
-  border-radius: 6px;
+  border-radius: var(--border-radius);
   cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.3s;
+  font-size: 1.1rem;
+  font-weight: var(--font-weight-medium);
+  border: none;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.file-input-label::before {
+  content: '📄';
+  font-size: 1.2rem;
 }
 
 .file-input-label:hover {
-  background-color: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.file-input-label:active {
+  transform: translateY(0);
 }
 
 .file-info {
-  margin-top: 15px;
-  padding: 15px;
-  background: white;
-  border-radius: 6px;
-  border: 1px solid #dee2e6;
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background: var(--ewu-light);
+  border-radius: var(--border-radius);
+  border: 1px solid #e9ecef;
 }
 
 .file-info p {
@@ -107,9 +200,11 @@
 }
 
 .upload-instruction {
-  margin: 15px 0;
-  color: #6c757d;
-  font-style: italic;
+  margin: var(--spacing-lg) 0;
+  color: var(--ewu-secondary);
+  font-size: 1.1rem;
+  font-weight: var(--font-weight-medium);
+  opacity: 0.8;
 }
 
 .format-info {
@@ -211,20 +306,27 @@
 
 .export-buttons {
   display: flex;
-  gap: 10px;
+  gap: var(--spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: var(--spacing-xl) 0;
 }
 
 .upload-new-btn {
-  background: linear-gradient(135deg, #6c757d, #5a6268);
+  background: var(--ewu-gradient);
   color: white;
   border: none;
-  padding: 12px 20px;
-  border-radius: 6px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--border-radius);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: var(--font-weight-medium);
   transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  text-decoration: none;
 }
 
 .upload-new-btn:hover {
@@ -252,27 +354,55 @@
 }
 
 .export-pdf {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  background: linear-gradient(135deg, #dc3545, #c82333);
   color: white;
-  box-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: var(--font-weight-medium);
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.export-pdf::before {
+  content: '📄';
+  font-size: 1.2rem;
 }
 
 .export-pdf:hover:not(:disabled) {
-  background: linear-gradient(135deg, #c0392b, #a93226);
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(231, 76, 60, 0.4);
+  box-shadow: var(--shadow-md);
 }
 
 .export-png {
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: linear-gradient(135deg, var(--ewu-secondary), #138496);
   color: white;
-  box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: var(--font-weight-medium);
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.export-png::before {
+  content: '🖼️';
+  font-size: 1.2rem;
 }
 
 .export-png:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2980b9, #21618c);
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
+  box-shadow: var(--shadow-md);
 }
 
 /* Schedule Grid Styles */
