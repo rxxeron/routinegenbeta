@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes" />
+    <meta name="theme-color" content="#282c34" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="RoutineGen" />
+    <meta
+      name="description"
+      content="RoutineGen - University Schedule Parser. Create beautiful weekly schedules from CSV files. Mobile-friendly and easy to use."
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+      // Ensure jsPDF is available globally with multiple fallbacks
+      window.addEventListener('load', function() {
+        // Try different ways jsPDF might be exposed
+        if (window.jspdf && window.jspdf.jsPDF) {
+          window.jsPDF = window.jspdf.jsPDF;
+        } else if (window.jsPDF) {
+          // Already available
+        } else if (typeof jsPDF !== 'undefined') {
+          window.jsPDF = jsPDF;
+        }
+        
+        console.log('jsPDF available:', !!window.jsPDF);
+        console.log('jsPDF type:', typeof window.jsPDF);
+        console.log('html2canvas available:', !!window.html2canvas);
+        
+        // Test jsPDF constructor
+        try {
+          if (window.jsPDF) {
+            const testPdf = new window.jsPDF();
+            console.log('jsPDF constructor test: SUCCESS');
+          }
+        } catch (e) {
+          console.error('jsPDF constructor test failed:', e);
+        }
+      });
+    </script>
+    <title>RoutineGen - University Schedule Parser</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

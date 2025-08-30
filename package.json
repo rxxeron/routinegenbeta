@@ -1,0 +1,31 @@
+{
+  "name": "routinegen-backend",
+  "version": "1.0.0",
+  "description": "Backend server for RoutineGen - University Schedule Parser",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1",
+    "xlsx": "^0.18.5",
+    "puppeteer": "^21.3.6",
+    "html-pdf": "^3.0.1",
+    "canvas": "^2.11.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "university",
+    "schedule",
+    "csv",
+    "parser",
+    "express"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
