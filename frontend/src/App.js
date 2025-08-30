@@ -130,30 +130,70 @@ function App() {
         format: 'a4'
       });
 
+      // Add course summary section to the export wrapper before creating canvas
+      const uniqueCourses = [...new Set(dataToUse.map(course => course.courseCode))];
+      const courseColors = ['#f8d7da', '#d1ecf1', '#d4edda', '#fff3cd', '#e2d9e2', '#fdeaa7'];
+      
+      const summarySection = document.createElement('div');
+      summarySection.style.cssText = `
+        margin-top: 20px;
+        padding: 15px;
+        border-top: 1px solid #ddd;
+      `;
+      
+      const summaryTitle = document.createElement('h3');
+      summaryTitle.style.cssText = `
+        margin: 0 0 10px 0; 
+        font-size: 16px; 
+        color: #333;
+        font-weight: bold;
+      `;
+      summaryTitle.textContent = 'Course Summary';
+      
+      const courseList = document.createElement('div');
+      courseList.style.cssText = `
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      `;
+      
+      uniqueCourses.forEach((course, index) => {
+        const color = courseColors[index % courseColors.length];
+        const courseItem = document.createElement('span');
+        courseItem.style.cssText = `
+          display: inline-flex;
+          align-items: center;
+          padding: 4px 8px;
+          background-color: ${color};
+          border-radius: 3px;
+          font-size: 11px;
+          border: 1px solid #ccc;
+          margin-right: 8px;
+          margin-bottom: 4px;
+        `;
+        courseItem.innerHTML = `<span style="color: #333; margin-right: 5px;">●</span>${course}`;
+        courseList.appendChild(courseItem);
+      });
+      
+      summarySection.appendChild(summaryTitle);
+      summarySection.appendChild(courseList);
+      
+      // Add summary to the export wrapper that's already in the DOM
+      const existingWrapper = document.querySelector('div[style*="position: fixed"][style*="top: -10000px"]');
+      if (existingWrapper) {
+        existingWrapper.appendChild(summarySection);
+      }
+
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
+      const margin = 5;
+      
+      // Use full page with minimal margins
       const availableWidth = pdfWidth - (margin * 2);
       const availableHeight = pdfHeight - (margin * 2);
-      
-      const canvasAspectRatio = canvas.width / canvas.height;
-      const availableAspectRatio = availableWidth / availableHeight;
-      
-      let finalWidth, finalHeight;
-      
-      if (canvasAspectRatio > availableAspectRatio) {
-        finalWidth = availableWidth;
-        finalHeight = availableWidth / canvasAspectRatio;
-      } else {
-        finalHeight = availableHeight;
-        finalWidth = availableHeight * canvasAspectRatio;
-      }
-      
-      const x = (pdfWidth - finalWidth) / 2;
-      const y = (pdfHeight - finalHeight) / 2;
 
       const imgData = canvas.toDataURL('image/png');
-      pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
+      pdf.addImage(imgData, 'PNG', margin, margin, availableWidth, availableHeight);
 
       pdf.save('weekly-schedule.pdf');
       
@@ -249,8 +289,23 @@ function App() {
 
       document.body.removeChild(exportWrapper);
       
+      // Create standard full-page canvas for PNG
+      const standardCanvas = document.createElement('canvas');
+      const ctx = standardCanvas.getContext('2d');
+      
+      // Set A4 landscape dimensions at 300 DPI for full-page PNG
+      standardCanvas.width = 3508;
+      standardCanvas.height = 2480;
+      
+      // Fill with white background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, standardCanvas.width, standardCanvas.height);
+      
+      // Draw the captured content to fill the entire page
+      ctx.drawImage(canvas, 0, 0, standardCanvas.width, standardCanvas.height);
+      
       const link = document.createElement('a');
-      link.href = canvas.toDataURL('image/png');
+      link.href = standardCanvas.toDataURL('image/png');
       link.download = 'weekly-schedule.png';
       document.body.appendChild(link);
       link.click();
