@@ -84,14 +84,31 @@ function App() {
         margin: 0;
         max-width: 100%;
         overflow: visible;
+        animation: none !important;
+        transform: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
       `;
+
+      // Remove animations from all child elements
+      const allElements = scheduleClone.querySelectorAll('*');
+      allElements.forEach(el => {
+        el.style.animation = 'none';
+        el.style.transform = 'none';
+        el.style.opacity = '1';
+        el.style.visibility = 'visible';
+      });
 
       exportWrapper.appendChild(titleDiv);
       exportWrapper.appendChild(scheduleClone);
       
       document.body.appendChild(exportWrapper);
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait longer for rendering and force a repaint
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Force layout recalculation
+      void exportWrapper.offsetHeight;
 
       const canvas = await window.html2canvas(exportWrapper, {
         backgroundColor: '#ffffff',
@@ -192,14 +209,31 @@ function App() {
         margin: 0;
         max-width: 100%;
         overflow: visible;
+        animation: none !important;
+        transform: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
       `;
+
+      // Remove animations from all child elements
+      const allElements = scheduleClone.querySelectorAll('*');
+      allElements.forEach(el => {
+        el.style.animation = 'none';
+        el.style.transform = 'none';
+        el.style.opacity = '1';
+        el.style.visibility = 'visible';
+      });
 
       exportWrapper.appendChild(titleDiv);
       exportWrapper.appendChild(scheduleClone);
       
       document.body.appendChild(exportWrapper);
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait longer for rendering and force a repaint
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Force layout recalculation
+      void exportWrapper.offsetHeight;
 
       const canvas = await window.html2canvas(exportWrapper, {
         backgroundColor: '#ffffff',
