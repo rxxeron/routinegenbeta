@@ -258,8 +258,8 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>RoutineGen</h1>
-        <p>Select your CSV file - Schedule appears instantly with colorful PDF ready to print!</p>
+        <h1>Schedule Generator EWU</h1>
+        <p>Upload your CSV file and instantly generate a beautiful, printable schedule for East West University!</p>
       </header>
       
       <main className="App-main">

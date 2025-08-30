@@ -1,7 +1,7 @@
 {
-  "name": "routinegen-frontend",
+  "name": "schedule-generator-ewu-frontend",
   "version": "1.0.0",
-  "description": "Frontend React app for RoutineGen - University Schedule Parser",
+  "description": "Frontend React app for Schedule Generator EWU - East West University Schedule Parser",
   "private": true,
   "dependencies": {
     "react": "^18.2.0",
