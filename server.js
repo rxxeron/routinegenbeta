@@ -4,6 +4,7 @@ const multer = require('multer');
 const xlsx = require('xlsx');
 const path = require('path');
 const fs = require('fs');
+const puppeteer = require('puppeteer');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -480,6 +481,302 @@ app.post('/api/export/csv', express.json(), (req, res) => {
   } catch (error) {
     console.error('Error generating CSV:', error);
     res.status(500).json({ error: 'Error generating CSV: ' + error.message });
+  }
+});
+
+// Generate HTML for schedule export
+function generateScheduleHTML(routineData) {
+  const timeSlots = [
+    '8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM',
+    '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM',
+    '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM',
+    '5:00 PM', '5:30 PM', '6:00 PM', '6:30 PM', '7:00 PM', '7:30 PM',
+    '8:00 PM', '8:30 PM', '9:00 PM'
+  ];
+
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Saturday'];
+  
+  // Create schedule grid
+  const schedule = {};
+  days.forEach(day => {
+    schedule[day] = {};
+  });
+
+  // Fill schedule grid with courses
+  routineData.forEach(course => {
+    const day = course.day;
+    const startTime = course.startTime;
+    const endTime = course.endTime;
+    
+    if (schedule[day]) {
+      schedule[day][startTime] = {
+        courseCode: course.courseCode,
+        endTime: endTime,
+        room: course.room
+      };
+    }
+  });
+
+  // Generate HTML table
+  let tableRows = '';
+  
+  timeSlots.forEach(timeSlot => {
+    let row = `<tr><td class="time-slot">${timeSlot}</td>`;
+    
+    days.forEach(day => {
+      const course = schedule[day][timeSlot];
+      if (course) {
+        row += `<td class="course-cell">
+          <div class="course-code">${course.courseCode}</div>
+          <div class="course-room">${course.room}</div>
+        </td>`;
+      } else {
+        row += '<td class="empty-cell"></td>';
+      }
+    });
+    
+    row += '</tr>';
+    tableRows += row;
+  });
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Weekly Class Schedule</title>
+      <style>
+        * { 
+          margin: 0; 
+          padding: 0; 
+          box-sizing: border-box; 
+        }
+        
+        body {
+          font-family: Arial, sans-serif;
+          background: white;
+          padding: 20px;
+          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact;
+        }
+        
+        .header {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        
+        .header h1 {
+          font-size: 24px;
+          color: #333;
+          margin-bottom: 5px;
+        }
+        
+        .header p {
+          font-size: 14px;
+          color: #666;
+        }
+        
+        .schedule-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 11px;
+          table-layout: fixed;
+        }
+        
+        .schedule-table th {
+          background-color: #f8f9fa;
+          border: 1px solid #dee2e6;
+          padding: 8px 4px;
+          text-align: center;
+          font-weight: bold;
+          color: #495057;
+        }
+        
+        .schedule-table td {
+          border: 1px solid #dee2e6;
+          padding: 4px;
+          vertical-align: top;
+          height: 35px;
+        }
+        
+        .time-slot {
+          background-color: #f8f9fa;
+          font-weight: bold;
+          text-align: center;
+          width: 80px;
+          font-size: 10px;
+        }
+        
+        .course-cell {
+          background-color: #e3f2fd;
+          text-align: center;
+        }
+        
+        .course-code {
+          font-weight: bold;
+          font-size: 10px;
+          color: #1976d2;
+          margin-bottom: 2px;
+        }
+        
+        .course-room {
+          font-size: 9px;
+          color: #666;
+        }
+        
+        .empty-cell {
+          background-color: #ffffff;
+        }
+        
+        .course-summary {
+          margin-top: 20px;
+          page-break-inside: avoid;
+        }
+        
+        .course-summary h3 {
+          font-size: 16px;
+          margin-bottom: 10px;
+          color: #333;
+        }
+        
+        .course-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        
+        .course-item {
+          display: inline-flex;
+          align-items: center;
+          padding: 4px 8px;
+          background-color: #e3f2fd;
+          border: 1px solid #bbdefb;
+          border-radius: 4px;
+          font-size: 10px;
+        }
+        
+        .course-indicator {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background-color: #1976d2;
+          margin-right: 5px;
+        }
+        
+        @media print {
+          body { margin: 0; padding: 15px; }
+          .schedule-table { font-size: 10px; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Weekly Class Schedule</h1>
+        <p>Generated on ${new Date().toLocaleDateString()}</p>
+      </div>
+      
+      <table class="schedule-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Sunday</th>
+            <th>Monday</th>
+            <th>Tuesday</th>
+            <th>Wednesday</th>
+            <th>Thursday</th>
+            <th>Saturday</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+      
+      <div class="course-summary">
+        <h3>Course Summary</h3>
+        <div class="course-list">
+          ${[...new Set(routineData.map(course => course.courseCode))].map(courseCode => 
+            `<div class="course-item">
+              <div class="course-indicator"></div>
+              ${courseCode}
+            </div>`
+          ).join('')}
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// Server-side export endpoint
+app.post('/api/download', async (req, res) => {
+  try {
+    const { routineData } = req.body;
+    const format = req.query.format;
+
+    if (!routineData || !Array.isArray(routineData) || routineData.length === 0) {
+      return res.status(400).json({ error: 'No valid routine data provided' });
+    }
+
+    if (!format || !['pdf', 'png'].includes(format)) {
+      return res.status(400).json({ error: 'Invalid format. Use pdf or png' });
+    }
+
+    console.log(`Generating ${format.toUpperCase()} export for ${routineData.length} courses`);
+
+    // Generate HTML content
+    const htmlContent = generateScheduleHTML(routineData);
+
+    // Launch puppeteer
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    });
+
+    const page = await browser.newPage();
+    
+    if (format === 'pdf') {
+      // Set content and generate PDF
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        landscape: true,
+        printBackground: true,
+        margin: {
+          top: '0.5in',
+          right: '0.5in',
+          bottom: '0.5in',
+          left: '0.5in'
+        }
+      });
+
+      await browser.close();
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=routine.pdf');
+      res.send(pdfBuffer);
+
+    } else if (format === 'png') {
+      // Set viewport for A4 landscape dimensions and generate PNG
+      await page.setViewport({ width: 1123, height: 794 });
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      
+      const pngBuffer = await page.screenshot({
+        fullPage: true,
+        type: 'png'
+      });
+
+      await browser.close();
+
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Content-Disposition', 'attachment; filename=routine.png');
+      res.send(pngBuffer);
+    }
+
+  } catch (error) {
+    console.error('Error generating export:', error);
+    res.status(500).json({ error: 'Error generating export: ' + error.message });
   }
 });
 
