@@ -6,8 +6,6 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
-frontend/
-frontend/**
 test-schedule*.csv
 demo.html
 *.bat
