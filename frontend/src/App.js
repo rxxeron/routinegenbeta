@@ -49,85 +49,51 @@ function App() {
         return;
       }
 
-      const routineContainer = document.querySelector('.routine-table');
-      if (!routineContainer) {
+      // Get the actual schedule element that's currently displayed
+      const scheduleElement = document.querySelector('.routine-table');
+      if (!scheduleElement) {
         setError('Schedule not found on page');
         return;
       }
 
-      const exportWrapper = document.createElement('div');
-      exportWrapper.style.cssText = `
-        position: fixed;
-        top: -10000px;
-        left: -10000px;
-        width: 1200px;
-        background: white;
-        padding: 15px;
-        font-family: Arial, sans-serif;
-        z-index: -1000;
-        box-sizing: border-box;
-      `;
+      // Detect mobile device
+      const isMobileDevice = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-      const titleDiv = document.createElement('div');
-      titleDiv.style.cssText = `
-        text-align: center;
-        margin-bottom: 15px;
-      `;
-      titleDiv.innerHTML = `
-        <h1 style="margin: 0 0 8px 0; font-size: 22px; color: #333;">Weekly Class Schedule</h1>
-        <p style="margin: 0; font-size: 13px; color: #666;">Generated on ${new Date().toLocaleDateString()}</p>
-      `;
-
-      const scheduleClone = routineContainer.cloneNode(true);
-      scheduleClone.style.cssText = `
-        width: 100%;
-        margin: 0;
-        max-width: 100%;
-        overflow: visible;
-        animation: none !important;
-        transform: none !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-      `;
-
-      // Remove animations from all child elements
-      const allElements = scheduleClone.querySelectorAll('*');
-      allElements.forEach(el => {
-        el.style.animation = 'none';
-        el.style.transform = 'none';
-        el.style.opacity = '1';
-        el.style.visibility = 'visible';
-      });
-
-      exportWrapper.appendChild(titleDiv);
-      exportWrapper.appendChild(scheduleClone);
-      
-      document.body.appendChild(exportWrapper);
-
-      // Wait longer for rendering and force a repaint
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Force layout recalculation
-      void exportWrapper.offsetHeight;
-
-      const canvas = await window.html2canvas(exportWrapper, {
+      // Take a direct screenshot of the schedule element
+      const canvas = await window.html2canvas(scheduleElement, {
         backgroundColor: '#ffffff',
-        scale: 2,
+        scale: isMobileDevice ? 3 : 2,
         useCORS: true,
         allowTaint: true,
-        width: 1200,
-        height: exportWrapper.scrollHeight,
-        scrollX: 0,
-        scrollY: 0,
-        logging: false
+        logging: false,
+        width: scheduleElement.offsetWidth,
+        height: scheduleElement.offsetHeight
       });
 
-      document.body.removeChild(exportWrapper);
-
+      // Create PDF with appropriate orientation
       const pdf = new jsPDFConstructor({
-        orientation: 'landscape',
+        orientation: isMobileDevice ? 'portrait' : 'landscape',
         unit: 'mm',
         format: 'a4'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Get PDF dimensions
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      // Add image to fill the entire page
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      
+      pdf.save(`schedule-${isMobileDevice ? 'mobile' : 'desktop'}-${new Date().getTime()}.pdf`);
+      
+    } catch (error) {
+      setError('Failed to export PDF: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
       });
 
       // Add course summary section to the export wrapper before creating canvas
@@ -214,162 +180,31 @@ function App() {
     try {
       setLoading(true);
       
-      const routineContainer = document.querySelector('.routine-table');
-      if (!routineContainer) {
+      // Get the actual schedule element that's currently displayed
+      const scheduleElement = document.querySelector('.routine-table');
+      if (!scheduleElement) {
         setError('Schedule not found on page');
         return;
       }
 
       // Detect mobile device
       const isMobileDevice = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      
-      const exportWrapper = document.createElement('div');
-      
-      // Use mobile-optimized dimensions for mobile devices
-      const wrapperWidth = isMobileDevice ? window.innerWidth : 1200;
-      
-      exportWrapper.style.cssText = `
-        position: fixed;
-        top: -10000px;
-        left: -10000px;
-        width: ${wrapperWidth}px;
-        background: white;
-        padding: ${isMobileDevice ? '10px' : '15px'};
-        font-family: Arial, sans-serif;
-        z-index: -1000;
-        box-sizing: border-box;
-      `;
 
-      const titleDiv = document.createElement('div');
-      titleDiv.style.cssText = `
-        text-align: center;
-        margin-bottom: ${isMobileDevice ? '10px' : '15px'};
-      `;
-      titleDiv.innerHTML = `
-        <h1 style="margin: 0 0 8px 0; font-size: ${isMobileDevice ? '18px' : '22px'}; color: #333;">Weekly Class Schedule</h1>
-        <p style="margin: 0; font-size: ${isMobileDevice ? '11px' : '13px'}; color: #666;">Generated on ${new Date().toLocaleDateString()}</p>
-      `;
-
-      const scheduleClone = routineContainer.cloneNode(true);
-      scheduleClone.style.cssText = `
-        width: 100%;
-        margin: 0;
-        max-width: 100%;
-        overflow: visible;
-        animation: none !important;
-        transform: none !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-      `;
-
-      // Remove animations from all child elements
-      const allElements = scheduleClone.querySelectorAll('*');
-      allElements.forEach(el => {
-        el.style.animation = 'none';
-        el.style.transform = 'none';
-        el.style.opacity = '1';
-        el.style.visibility = 'visible';
-      });
-
-      exportWrapper.appendChild(titleDiv);
-      exportWrapper.appendChild(scheduleClone);
-      
-      // Add course summary section for PNG export
-      const uniqueCourses = [...new Set(routineData.map(course => course.courseCode))];
-      const courseColors = ['#f8d7da', '#d1ecf1', '#d4edda', '#fff3cd', '#e2d9e2', '#fdeaa7'];
-      
-      const summarySection = document.createElement('div');
-      summarySection.style.cssText = `
-        margin-top: ${isMobileDevice ? '15px' : '20px'};
-        padding: ${isMobileDevice ? '10px' : '15px'};
-        border-top: 1px solid #ddd;
-      `;
-      
-      const summaryTitle = document.createElement('h3');
-      summaryTitle.style.cssText = `
-        margin: 0 0 ${isMobileDevice ? '8px' : '10px'} 0; 
-        font-size: ${isMobileDevice ? '14px' : '16px'}; 
-        color: #333;
-        font-weight: bold;
-      `;
-      summaryTitle.textContent = 'Course Summary';
-      
-      const courseList = document.createElement('div');
-      courseList.style.cssText = `
-        display: flex;
-        flex-wrap: wrap;
-        gap: ${isMobileDevice ? '5px' : '10px'};
-      `;
-      
-      uniqueCourses.forEach((course, index) => {
-        const color = courseColors[index % courseColors.length];
-        const courseItem = document.createElement('span');
-        courseItem.style.cssText = `
-          display: inline-flex;
-          align-items: center;
-          padding: ${isMobileDevice ? '3px 6px' : '4px 8px'};
-          background-color: ${color};
-          border-radius: 3px;
-          font-size: ${isMobileDevice ? '9px' : '11px'};
-          border: 1px solid #ccc;
-          margin-right: ${isMobileDevice ? '4px' : '8px'};
-          margin-bottom: ${isMobileDevice ? '3px' : '4px'};
-        `;
-        courseItem.innerHTML = `<span style="color: #333; margin-right: 5px;">●</span>${course}`;
-        courseList.appendChild(courseItem);
-      });
-      
-      summarySection.appendChild(summaryTitle);
-      summarySection.appendChild(courseList);
-      exportWrapper.appendChild(summarySection);
-      
-      document.body.appendChild(exportWrapper);
-
-      // Wait longer for rendering and force a repaint
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Force layout recalculation
-      void exportWrapper.offsetHeight;
-
-      const canvas = await window.html2canvas(exportWrapper, {
+      // Take a direct screenshot of the schedule element
+      const canvas = await window.html2canvas(scheduleElement, {
         backgroundColor: '#ffffff',
-        scale: isMobileDevice ? 4 : 3, // Higher scale for mobile for better quality
+        scale: isMobileDevice ? 3 : 2,
         useCORS: true,
         allowTaint: true,
-        width: wrapperWidth,
-        height: exportWrapper.scrollHeight,
-        scrollX: 0,
-        scrollY: 0,
-        logging: false
+        logging: false,
+        width: scheduleElement.offsetWidth,
+        height: scheduleElement.offsetHeight
       });
 
-      document.body.removeChild(exportWrapper);
-      
-      // Create standard full-page canvas for PNG
-      const standardCanvas = document.createElement('canvas');
-      const ctx = standardCanvas.getContext('2d');
-      
-      // Use different dimensions based on device type
-      if (isMobileDevice) {
-        // Portrait orientation for mobile - A4 portrait at 300 DPI
-        standardCanvas.width = 2480;
-        standardCanvas.height = 3508;
-      } else {
-        // Landscape orientation for desktop - A4 landscape at 300 DPI
-        standardCanvas.width = 3508;
-        standardCanvas.height = 2480;
-      }
-      
-      // Fill with white background
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, standardCanvas.width, standardCanvas.height);
-      
-      // Draw the captured content to fill the entire page
-      ctx.drawImage(canvas, 0, 0, standardCanvas.width, standardCanvas.height);
-      
+      // Create download link
       const link = document.createElement('a');
-      link.href = standardCanvas.toDataURL('image/png');
-      link.download = `weekly-schedule-${isMobileDevice ? 'mobile' : 'desktop'}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.download = `schedule-${isMobileDevice ? 'mobile' : 'desktop'}-${new Date().getTime()}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
