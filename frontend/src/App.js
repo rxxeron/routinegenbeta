@@ -220,14 +220,21 @@ function App() {
         return;
       }
 
+      // Detect mobile device
+      const isMobileDevice = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
       const exportWrapper = document.createElement('div');
+      
+      // Use mobile-optimized dimensions for mobile devices
+      const wrapperWidth = isMobileDevice ? window.innerWidth : 1200;
+      
       exportWrapper.style.cssText = `
         position: fixed;
         top: -10000px;
         left: -10000px;
-        width: 1200px;
+        width: ${wrapperWidth}px;
         background: white;
-        padding: 15px;
+        padding: ${isMobileDevice ? '10px' : '15px'};
         font-family: Arial, sans-serif;
         z-index: -1000;
         box-sizing: border-box;
@@ -236,11 +243,11 @@ function App() {
       const titleDiv = document.createElement('div');
       titleDiv.style.cssText = `
         text-align: center;
-        margin-bottom: 15px;
+        margin-bottom: ${isMobileDevice ? '10px' : '15px'};
       `;
       titleDiv.innerHTML = `
-        <h1 style="margin: 0 0 8px 0; font-size: 22px; color: #333;">Weekly Class Schedule</h1>
-        <p style="margin: 0; font-size: 13px; color: #666;">Generated on ${new Date().toLocaleDateString()}</p>
+        <h1 style="margin: 0 0 8px 0; font-size: ${isMobileDevice ? '18px' : '22px'}; color: #333;">Weekly Class Schedule</h1>
+        <p style="margin: 0; font-size: ${isMobileDevice ? '11px' : '13px'}; color: #666;">Generated on ${new Date().toLocaleDateString()}</p>
       `;
 
       const scheduleClone = routineContainer.cloneNode(true);
@@ -267,6 +274,55 @@ function App() {
       exportWrapper.appendChild(titleDiv);
       exportWrapper.appendChild(scheduleClone);
       
+      // Add course summary section for PNG export
+      const uniqueCourses = [...new Set(routineData.map(course => course.courseCode))];
+      const courseColors = ['#f8d7da', '#d1ecf1', '#d4edda', '#fff3cd', '#e2d9e2', '#fdeaa7'];
+      
+      const summarySection = document.createElement('div');
+      summarySection.style.cssText = `
+        margin-top: ${isMobileDevice ? '15px' : '20px'};
+        padding: ${isMobileDevice ? '10px' : '15px'};
+        border-top: 1px solid #ddd;
+      `;
+      
+      const summaryTitle = document.createElement('h3');
+      summaryTitle.style.cssText = `
+        margin: 0 0 ${isMobileDevice ? '8px' : '10px'} 0; 
+        font-size: ${isMobileDevice ? '14px' : '16px'}; 
+        color: #333;
+        font-weight: bold;
+      `;
+      summaryTitle.textContent = 'Course Summary';
+      
+      const courseList = document.createElement('div');
+      courseList.style.cssText = `
+        display: flex;
+        flex-wrap: wrap;
+        gap: ${isMobileDevice ? '5px' : '10px'};
+      `;
+      
+      uniqueCourses.forEach((course, index) => {
+        const color = courseColors[index % courseColors.length];
+        const courseItem = document.createElement('span');
+        courseItem.style.cssText = `
+          display: inline-flex;
+          align-items: center;
+          padding: ${isMobileDevice ? '3px 6px' : '4px 8px'};
+          background-color: ${color};
+          border-radius: 3px;
+          font-size: ${isMobileDevice ? '9px' : '11px'};
+          border: 1px solid #ccc;
+          margin-right: ${isMobileDevice ? '4px' : '8px'};
+          margin-bottom: ${isMobileDevice ? '3px' : '4px'};
+        `;
+        courseItem.innerHTML = `<span style="color: #333; margin-right: 5px;">●</span>${course}`;
+        courseList.appendChild(courseItem);
+      });
+      
+      summarySection.appendChild(summaryTitle);
+      summarySection.appendChild(courseList);
+      exportWrapper.appendChild(summarySection);
+      
       document.body.appendChild(exportWrapper);
 
       // Wait longer for rendering and force a repaint
@@ -277,10 +333,10 @@ function App() {
 
       const canvas = await window.html2canvas(exportWrapper, {
         backgroundColor: '#ffffff',
-        scale: 3, 
+        scale: isMobileDevice ? 4 : 3, // Higher scale for mobile for better quality
         useCORS: true,
         allowTaint: true,
-        width: 1200,
+        width: wrapperWidth,
         height: exportWrapper.scrollHeight,
         scrollX: 0,
         scrollY: 0,
@@ -293,9 +349,16 @@ function App() {
       const standardCanvas = document.createElement('canvas');
       const ctx = standardCanvas.getContext('2d');
       
-      // Set A4 landscape dimensions at 300 DPI for full-page PNG
-      standardCanvas.width = 3508;
-      standardCanvas.height = 2480;
+      // Use different dimensions based on device type
+      if (isMobileDevice) {
+        // Portrait orientation for mobile - A4 portrait at 300 DPI
+        standardCanvas.width = 2480;
+        standardCanvas.height = 3508;
+      } else {
+        // Landscape orientation for desktop - A4 landscape at 300 DPI
+        standardCanvas.width = 3508;
+        standardCanvas.height = 2480;
+      }
       
       // Fill with white background
       ctx.fillStyle = '#ffffff';
@@ -306,7 +369,7 @@ function App() {
       
       const link = document.createElement('a');
       link.href = standardCanvas.toDataURL('image/png');
-      link.download = 'weekly-schedule.png';
+      link.download = `weekly-schedule-${isMobileDevice ? 'mobile' : 'desktop'}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
