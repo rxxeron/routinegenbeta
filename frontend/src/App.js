@@ -260,7 +260,7 @@ function App() {
       {/* Modern EWU-themed Schedule Generator */}
       <header className="App-header">
         <h1>Schedule Generator for EWU Students!</h1>
-        <p>Upload your Advising Slip - Weekly Schedule Appears Instantly with download option.</p>
+        <p>Upload your Advising Slip - Weekly Schedule Appears Instantly with&nbsp;download&nbsp;option.</p>
       </header>
       
       <main className="App-main">
@@ -338,6 +338,10 @@ function App() {
           </div>
         )}
       </main>
+      
+      <footer className="app-footer">
+        <p>Created by <a href="https://rxxeron.me" target="_blank" rel="noopener noreferrer">rxxeron</a></p>
+      </footer>
     </div>
   );
 }
