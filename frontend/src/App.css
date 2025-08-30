@@ -764,10 +764,11 @@ body {
   }
 
   .routine-table {
-    overflow-x: auto;
+    overflow: hidden;
     margin-top: 15px;
     width: 100%;
-    max-width: 100%;
+    max-width: 100vw;
+    padding: 0;
   }
   
   .routine-container {
@@ -775,29 +776,32 @@ body {
   }
   
   .schedule-grid {
-    min-width: 800px;
-    grid-template-columns: 60px repeat(7, minmax(100px, 1fr));
+    width: 100%;
+    max-width: 100vw;
+    grid-template-columns: 50px repeat(7, 1fr);
     overflow: visible;
-    font-size: 12px;
+    font-size: 11px;
+    min-height: 600px;
   }
   
-  .day-monday { left: 60px; }
-  .day-tuesday { left: calc(60px + 100px * 1); }
-  .day-wednesday { left: calc(60px + 100px * 2); }
-  .day-thursday { left: calc(60px + 100px * 3); }
-  .day-friday { left: calc(60px + 100px * 4); }
-  .day-saturday { left: calc(60px + 100px * 5); }
-  .day-sunday { left: calc(60px + 100px * 6); }
+  .day-monday { left: 50px; }
+  .day-tuesday { left: calc(50px + (100vw - 50px) / 7 * 1); }
+  .day-wednesday { left: calc(50px + (100vw - 50px) / 7 * 2); }
+  .day-thursday { left: calc(50px + (100vw - 50px) / 7 * 3); }
+  .day-friday { left: calc(50px + (100vw - 50px) / 7 * 4); }
+  .day-saturday { left: calc(50px + (100vw - 50px) / 7 * 5); }
+  .day-sunday { left: calc(50px + (100vw - 50px) / 7 * 6); }
   
   .day-column {
-    width: 100px;
+    width: calc((100vw - 50px) / 7);
   }
   
   .time-cell {
-    font-size: 10px;
-    padding: 5px 2px;
+    font-size: 9px;
+    padding: 4px 2px;
     height: 50px;
-    width: 60px;
+    width: 50px;
+    line-height: 1.1;
   }
   
   .schedule-cell {
@@ -848,19 +852,20 @@ body {
   .export-buttons {
     justify-content: center;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 10px;
     margin-top: 15px;
     width: 100%;
+    max-width: 350px;
   }
 
   .export-btn {
     flex: 1;
-    min-width: 140px;
-    max-width: 180px;
+    min-width: 120px;
+    max-width: 160px;
     justify-content: center;
-    padding: 14px 18px;
-    font-size: 15px;
-    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    border-radius: 10px;
   }
   
   .schedule-actions {
@@ -1026,9 +1031,12 @@ body {
   }
   
   .day-header {
-    font-size: 7px;
-    writing-mode: vertical-lr;
-    text-orientation: mixed;
+    font-size: 8px;
+    writing-mode: initial;
+    text-orientation: initial;
+    transform: none;
+    padding: 5px 2px;
+    line-height: 1.1;
   }
   
   .time-header {
@@ -1042,25 +1050,28 @@ body {
   }
   
   .course-block {
-    padding: 1px;
-    margin: 0;
+    padding: 3px;
+    margin: 1px;
     border-width: 1px;
+    font-size: 8px;
+    min-height: 40px;
   }
   
   .course-code {
-    font-size: 6px;
-    margin-bottom: 0;
-    line-height: 1;
+    font-size: 8px;
+    margin-bottom: 1px;
+    line-height: 1.1;
+    font-weight: bold;
   }
   
   .course-time {
-    font-size: 5px;
-    margin-bottom: 0;
-    line-height: 1;
+    font-size: 7px;
+    margin-bottom: 1px;
+    line-height: 1.1;
   }
   
   .course-room {
-    font-size: 4px;
+    font-size: 6px;
     line-height: 1;
   }
   
@@ -1181,6 +1192,43 @@ body {
     font-size: 16px;
     line-height: 1.5;
     padding: 10px 15px;
+  }
+}
+
+@media (max-width: 360px) {
+  .schedule-grid {
+    grid-template-columns: 40px repeat(7, 1fr);
+    font-size: 10px;
+  }
+  
+  .day-monday { left: 40px; }
+  .day-tuesday { left: calc(40px + (100vw - 40px) / 7 * 1); }
+  .day-wednesday { left: calc(40px + (100vw - 40px) / 7 * 2); }
+  .day-thursday { left: calc(40px + (100vw - 40px) / 7 * 3); }
+  .day-friday { left: calc(40px + (100vw - 40px) / 7 * 4); }
+  .day-saturday { left: calc(40px + (100vw - 40px) / 7 * 5); }
+  .day-sunday { left: calc(40px + (100vw - 40px) / 7 * 6); }
+  
+  .day-column {
+    width: calc((100vw - 40px) / 7);
+  }
+  
+  .time-cell {
+    font-size: 8px;
+    width: 40px;
+    padding: 3px 1px;
+  }
+  
+  .day-header {
+    font-size: 7px;
+    padding: 4px 1px;
+  }
+  
+  .export-btn {
+    min-width: 100px;
+    max-width: 140px;
+    padding: 10px 12px;
+    font-size: 13px;
   }
 }
 
