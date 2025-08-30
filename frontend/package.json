@@ -4,10 +4,11 @@
   "description": "Frontend React app for Schedule Generator EWU - East West University Schedule Parser",
   "private": true,
   "dependencies": {
+    "@vercel/analytics": "^1.5.0",
+    "axios": "^1.5.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
-    "axios": "^1.5.0"
+    "react-scripts": "5.0.1"
   },
   "scripts": {
     "start": "react-scripts start",

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Analytics } from "@vercel/analytics/react";
 import FileUpload from './FileUpload';
 import RoutineTable from './RoutineTable';
 import './App.css';
@@ -342,6 +343,7 @@ function App() {
       <footer className="app-footer">
         <p>Created by <a href="https://rxxeron.me" target="_blank" rel="noopener noreferrer">rxxeron</a></p>
       </footer>
+      <Analytics />
     </div>
   );
 }
