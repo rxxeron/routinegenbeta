@@ -9,7 +9,6 @@ const FileUpload = ({ onDataReceived, onError, onLoadingChange }) => {
     setSelectedFile(file);
     
     if (file) {
-      // Automatically upload and process the file
       await handleUpload(file);
     }
   };
@@ -20,7 +19,6 @@ const FileUpload = ({ onDataReceived, onError, onLoadingChange }) => {
       return;
     }
 
-    // Check file type
     const allowedTypes = [
       'text/csv',
       'application/vnd.ms-excel',

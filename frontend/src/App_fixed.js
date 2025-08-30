@@ -12,9 +12,8 @@ function App() {
   const handleDataReceived = (data) => {
     setRoutineData(data);
     setError('');
-    setSuccessMessage(`Successfully loaded ${data.length} courses! Opening colorful PDF...`);
+    setSuccessMessage(`✅ Successfully loaded ${data.length} courses! Opening colorful PDF...`);
     
-    // Automatically show PDF after data is loaded with a longer delay
     if (data && data.length > 0) {
       setTimeout(() => {
         handleExportPDF(data);
@@ -44,20 +43,17 @@ function App() {
     try {
       setLoading(true);
       
-      // Check if jsPDF is available
       if (!window.jsPDF) {
         setError('PDF library not loaded. Please refresh the page and try again.');
         return;
       }
 
-      // Find the schedule grid element
       const scheduleElement = document.querySelector('.schedule-grid');
       if (!scheduleElement) {
         setError('Schedule not found on page');
         return;
       }
 
-      // Use html2canvas to capture the schedule
       const canvas = await window.html2canvas(scheduleElement, {
         backgroundColor: '#ffffff',
         scale: 2,
@@ -67,7 +63,6 @@ function App() {
         height: scheduleElement.scrollHeight
       });
 
-      // Create PDF
       const { jsPDF } = window.jsPDF;
       const pdf = new jsPDF({
         orientation: 'landscape',
@@ -75,13 +70,11 @@ function App() {
         format: 'a4'
       });
 
-      // Calculate dimensions to fit the page
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
       
-      // Calculate scaling to fit the page while maintaining aspect ratio
       const widthScale = pdfWidth / canvasWidth;
       const heightScale = pdfHeight / canvasHeight;
       const scale = Math.min(widthScale, heightScale) * 0.9; // 0.9 for margins
@@ -89,11 +82,9 @@ function App() {
       const scaledWidth = canvasWidth * scale;
       const scaledHeight = canvasHeight * scale;
       
-      // Center the image on the page
       const x = (pdfWidth - scaledWidth) / 2;
       const y = (pdfHeight - scaledHeight) / 2;
 
-      // Add title
       pdf.setFontSize(20);
       pdf.setTextColor(40, 40, 40);
       pdf.text('Weekly Class Schedule', pdfWidth / 2, 15, { align: 'center' });
@@ -101,18 +92,15 @@ function App() {
       pdf.setFontSize(12);
       pdf.text(`Generated on ${new Date().toLocaleDateString()}`, pdfWidth / 2, 22, { align: 'center' });
 
-      // Add the schedule image
       const imgData = canvas.toDataURL('image/png');
       pdf.addImage(imgData, 'PNG', x, y + 10, scaledWidth, scaledHeight);
 
-      // Add course legend at the bottom
       const uniqueCourses = [...new Set(dataToUse.map(course => course.courseCode))];
       if (uniqueCourses.length > 0) {
         pdf.setFontSize(10);
         pdf.text('Courses: ' + uniqueCourses.join(', '), 10, pdfHeight - 10);
       }
 
-      // Download the PDF
       pdf.save('weekly-schedule.pdf');
       
     } catch (error) {
@@ -132,13 +120,11 @@ function App() {
     try {
       setLoading(true);
       
-      // Find the schedule grid element
       const scheduleElement = document.querySelector('.schedule-grid');
       if (!scheduleElement) {
         throw new Error('Schedule not found');
       }
 
-      // Use html2canvas library for better results
       if (window.html2canvas) {
         const canvas = await window.html2canvas(scheduleElement, {
           backgroundColor: '#ffffff',
@@ -147,7 +133,6 @@ function App() {
           allowTaint: true
         });
         
-        // Convert canvas to blob and download
         canvas.toBlob((blob) => {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -159,7 +144,6 @@ function App() {
           document.body.removeChild(a);
         }, 'image/png');
       } else {
-        // Fallback: export as CSV
         const response = await fetch('http://localhost:5000/api/export/csv', {
           method: 'POST',
           headers: {
@@ -208,7 +192,7 @@ function App() {
         
         {loading && (
           <div className="loading">
-            <p>Processing your file and generating colorful schedule...</p>
+            <p>📊 Processing your file and generating colorful schedule...</p>
           </div>
         )}
         

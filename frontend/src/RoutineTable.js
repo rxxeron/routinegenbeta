@@ -4,18 +4,15 @@ const RoutineTable = ({ routineData }) => {
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const timeSlots = [];
   
-  // Generate time slots from 8 AM to 7 PM
   for (let hour = 8; hour <= 19; hour++) {
     timeSlots.push(`${hour.toString().padStart(2, '0')}:00`);
   }
 
-  // Helper function to convert time string to minutes for calculations
   const timeToMinutes = (timeStr) => {
     const [hours, minutes] = timeStr.split(':').map(Number);
     return hours * 60 + minutes;
   };
 
-  // Helper function to calculate position and height
   const calculatePosition = (startTime, endTime) => {
     const startMinutes = timeToMinutes(startTime);
     const endMinutes = timeToMinutes(endTime);
@@ -27,7 +24,6 @@ const RoutineTable = ({ routineData }) => {
     return { top, height };
   };
 
-  // Generate random colors for courses
   const colors = [
     '#FFB6C1', '#87CEEB', '#98FB98', '#F0E68C', '#DDA0DD',
     '#FFE4B5', '#B0E0E6', '#FAFAD2', '#FFE4E1', '#E0E6FF'
@@ -36,13 +32,11 @@ const RoutineTable = ({ routineData }) => {
   const courseColors = {};
   let colorIndex = 0;
 
-  // Group courses by day
   const coursesByDay = {};
   days.forEach(day => {
     coursesByDay[day] = routineData.filter(course => course.day === day);
   });
 
-  // Assign colors to courses
   routineData.forEach(course => {
     if (!courseColors[course.courseCode]) {
       courseColors[course.courseCode] = colors[colorIndex % colors.length];

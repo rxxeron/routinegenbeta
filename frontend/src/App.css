@@ -1,30 +1,30 @@
- /* Modern EWU-Themed Schedule Generator */
+ 
 
 :root {
-  /* EWU Color Palette */
-  --ewu-primary: #1e3d59;      /* Deep Blue */
-  --ewu-secondary: #17a2b8;    /* Teal Blue */
-  --ewu-accent: #28a745;       /* Success Green */
-  --ewu-gold: #ffc107;         /* Gold Accent */
-  --ewu-light: #f8f9fa;        /* Light Background */
-  --ewu-dark: #343a40;         /* Dark Text */
+  
+  --ewu-primary: #1e3d59;      
+  --ewu-secondary: #17a2b8;    
+  --ewu-accent: #28a745;       
+  --ewu-gold: #ffc107;         
+  --ewu-light: #f8f9fa;        
+  --ewu-dark: #343a40;         
   --ewu-gradient: linear-gradient(135deg, #1e3d59 0%, #17a2b8 100%);
   
-  /* Modern Typography */
+  
   --font-primary: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   --font-weight-light: 300;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-bold: 700;
   
-  /* Spacing */
+  
   --spacing-xs: 0.5rem;
   --spacing-sm: 1rem;
   --spacing-md: 1.5rem;
   --spacing-lg: 2rem;
   --spacing-xl: 3rem;
   
-  /* Borders */
+  
   --border-radius: 12px;
   --border-radius-lg: 16px;
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -46,7 +46,7 @@ body {
   line-height: 1.6;
 }
 
-/* Loading Animations */
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -89,7 +89,7 @@ body {
   animation: fadeInUp 0.8s ease-out;
 }
 
-/* Modern Header Design */
+
 .App-header {
   background: var(--ewu-gradient);
   padding: var(--spacing-xl) var(--spacing-lg);
@@ -140,7 +140,7 @@ body {
   gap: 20px;
 }
 
-/* Modern File Upload Design */
+
 .file-upload {
   background: white;
   border-radius: var(--border-radius-lg);
@@ -182,7 +182,7 @@ body {
 }
 
 .file-input-label::before {
-  content: '';
+  content: '📄';
   font-size: 1.2rem;
 }
 
@@ -275,7 +275,7 @@ body {
   color: #6c757d;
 }
 
-/* Loading and Error Styles */
+
 .loading {
   padding: 20px;
   background: #e3f2fd;
@@ -314,7 +314,7 @@ body {
   margin: 0;
 }
 
-/* Routine Container */
+
 .routine-container {
   background: white;
   border-radius: 8px;
@@ -329,7 +329,7 @@ body {
   padding-bottom: 10px;
 }
 
-/* Schedule Header with Export Buttons */
+
 .schedule-header {
   display: flex;
   justify-content: space-between;
@@ -454,7 +454,7 @@ body {
   box-shadow: var(--shadow-md);
 }
 
-/* Schedule Grid Styles */
+
 .routine-table {
   width: 100%;
   margin-top: 20px;
@@ -468,7 +468,7 @@ body {
   border-radius: 6px;
   overflow: hidden;
   position: relative;
-  min-height: 720px; /* 12 hours * 60px */
+  min-height: 720px; 
   animation: scaleIn 0.6s ease-out 0.8s both;
 }
 
@@ -497,7 +497,7 @@ body {
   font-weight: bold;
   border-right: 1px solid #dee2e6;
   border-bottom: 1px solid #dee2e6;
-  height: 52px; /* 60px - 8px padding */
+  height: 52px; 
   display: flex;
   align-items: center;
   justify-content: center;
@@ -512,10 +512,10 @@ body {
   text-align: center;
 }
 
-/* Day columns for absolute positioning */
+
 .day-column {
   position: absolute;
-  top: 40px; /* Height of header */
+  top: 40px; 
   bottom: 0;
   width: calc((100% - 80px) / 7);
   pointer-events: none;
@@ -529,7 +529,7 @@ body {
 .day-saturday { left: calc(80px + (100% - 80px) / 7 * 5); }
 .day-sunday { left: calc(80px + (100% - 80px) / 7 * 6); }
 
-/* Course Block Styles */
+
 .course-block {
   border: 2px solid #333;
   border-radius: 4px;
@@ -575,7 +575,7 @@ body {
   font-style: italic;
 }
 
-/* Schedule Summary */
+
 .schedule-summary {
   margin-top: 30px;
   padding: 20px;
@@ -612,9 +612,9 @@ body {
   border: 2px solid #333;
 }
 
-/* Responsive Design */
 
-/* Tablet styles */
+
+
 @media (max-width: 1200px) {
   .schedule-grid {
     grid-template-columns: 60px repeat(7, 1fr);
@@ -641,7 +641,7 @@ body {
   }
 }
 
-/* Mobile styles */
+
 @media (max-width: 768px) {
   * {
     box-sizing: border-box;
@@ -758,7 +758,7 @@ body {
     max-width: 400px;
   }
   
-  /* Create a content group for mobile */
+  
   .App-header + .App-main {
     margin-top: 10px;
   }
@@ -877,7 +877,7 @@ body {
   }
 }
 
-/* Small mobile styles */
+
 @media (max-width: 480px) {
   .App {
     padding: 0;
@@ -1100,7 +1100,7 @@ body {
   }
 }
 
-/* Landscape mobile styles */
+
 @media (max-width: 768px) and (orientation: landscape) {
   .schedule-grid {
     grid-template-columns: 50px repeat(7, 1fr);
@@ -1141,7 +1141,7 @@ body {
   }
 }
 
-/* Touch device optimizations */
+
 @media (hover: none) and (pointer: coarse) {
   .export-btn {
     padding: 16px 20px;
@@ -1176,7 +1176,7 @@ body {
     min-height: 30px;
   }
 
-  /* Better touch targets */
+  
   .App-header p {
     font-size: 16px;
     line-height: 1.5;
@@ -1184,7 +1184,7 @@ body {
   }
 }
 
-/* Footer Styles */
+
 .app-footer {
   margin-top: var(--spacing-xl);
   padding: var(--spacing-md);
@@ -1223,7 +1223,7 @@ body {
   width: 100%;
 }
 
-/* Mobile Footer Styles */
+
 @media (max-width: 768px) {
   .app-footer {
     font-size: 0.8rem;
@@ -1239,3 +1239,4 @@ body {
     margin-top: var(--spacing-md);
   }
 }
+

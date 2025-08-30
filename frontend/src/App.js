@@ -49,14 +49,12 @@ function App() {
         return;
       }
 
-      // Find the entire routine table container
       const routineContainer = document.querySelector('.routine-table');
       if (!routineContainer) {
         setError('Schedule not found on page');
         return;
       }
 
-      // Create a wrapper div that includes title and course list
       const exportWrapper = document.createElement('div');
       exportWrapper.style.cssText = `
         position: fixed;
@@ -70,7 +68,6 @@ function App() {
         box-sizing: border-box;
       `;
 
-      // Add title
       const titleDiv = document.createElement('div');
       titleDiv.style.cssText = `
         text-align: center;
@@ -81,7 +78,6 @@ function App() {
         <p style="margin: 0; font-size: 13px; color: #666;">Generated on ${new Date().toLocaleDateString()}</p>
       `;
 
-      // Clone the routine table
       const scheduleClone = routineContainer.cloneNode(true);
       scheduleClone.style.cssText = `
         width: 100%;
@@ -90,7 +86,6 @@ function App() {
         overflow: visible;
       `;
 
-      // Assemble the export wrapper (removed course list since we have the summary)
       exportWrapper.appendChild(titleDiv);
       exportWrapper.appendChild(scheduleClone);
       
@@ -118,7 +113,6 @@ function App() {
         format: 'a4'
       });
 
-      // Calculate dimensions to fit the page
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const margin = 10;
@@ -131,24 +125,19 @@ function App() {
       let finalWidth, finalHeight;
       
       if (canvasAspectRatio > availableAspectRatio) {
-        // Canvas is wider - fit to width
         finalWidth = availableWidth;
         finalHeight = availableWidth / canvasAspectRatio;
       } else {
-        // Canvas is taller - fit to height
         finalHeight = availableHeight;
         finalWidth = availableHeight * canvasAspectRatio;
       }
       
-      // Center the image
       const x = (pdfWidth - finalWidth) / 2;
       const y = (pdfHeight - finalHeight) / 2;
 
-      // Add the image to PDF
       const imgData = canvas.toDataURL('image/png');
       pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
 
-      // Download the PDF
       pdf.save('weekly-schedule.pdf');
       
     } catch (error) {
@@ -168,14 +157,12 @@ function App() {
     try {
       setLoading(true);
       
-      // Find the entire routine table container
       const routineContainer = document.querySelector('.routine-table');
       if (!routineContainer) {
         setError('Schedule not found on page');
         return;
       }
 
-      // Create a wrapper div that includes title and schedule
       const exportWrapper = document.createElement('div');
       exportWrapper.style.cssText = `
         position: fixed;
@@ -189,7 +176,6 @@ function App() {
         box-sizing: border-box;
       `;
 
-      // Add title
       const titleDiv = document.createElement('div');
       titleDiv.style.cssText = `
         text-align: center;
@@ -200,7 +186,6 @@ function App() {
         <p style="margin: 0; font-size: 13px; color: #666;">Generated on ${new Date().toLocaleDateString()}</p>
       `;
 
-      // Clone the routine table
       const scheduleClone = routineContainer.cloneNode(true);
       scheduleClone.style.cssText = `
         width: 100%;
@@ -209,14 +194,11 @@ function App() {
         overflow: visible;
       `;
 
-      // Assemble the export wrapper
       exportWrapper.appendChild(titleDiv);
       exportWrapper.appendChild(scheduleClone);
       
-      // Add to document
       document.body.appendChild(exportWrapper);
 
-      // Wait for rendering
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const canvas = await window.html2canvas(exportWrapper, {
@@ -250,7 +232,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Schedule Generator for EWU Students!</h1>
+        <h1>📅 Schedule Generator for EWU Students!</h1>
         <p>Upload your Advising Slip - Weekly Schedule Appears Instantly with&nbsp;download&nbsp;option.</p>
       </header>
       
@@ -265,7 +247,7 @@ function App() {
             
             {loading && (
               <div className="loading">
-                <p>Processing your file and generating schedule...</p>
+                <p>📊 Processing your file and generating schedule...</p>
               </div>
             )}
             
@@ -280,7 +262,7 @@ function App() {
         {routineData.length > 0 && (
           <div className="routine-container">
             <div className="schedule-header">
-              <h2>Your Weekly Schedule</h2>
+              <h2>📅 Your Weekly Schedule</h2>
               <div className="schedule-actions">
                 <div className="export-buttons">
                   <button 
@@ -288,14 +270,14 @@ function App() {
                     className="export-btn export-pdf"
                     disabled={loading}
                   >
-                    Download PDF
+                    📄 Download PDF
                   </button>
                   <button 
                     onClick={handleExportPNG} 
                     className="export-btn export-png"
                     disabled={loading}
                   >
-                    Save as Image
+                    🖼️ Save as Image
                   </button>
                 </div>
                 <button 
@@ -306,14 +288,14 @@ function App() {
                   }}
                   className="upload-new-btn"
                 >
-                  Upload New File
+                  📁 Upload New File
                 </button>
               </div>
             </div>
             
             {loading && (
               <div className="loading">
-                <p>Generating your export...</p>
+                <p>📊 Generating your export...</p>
               </div>
             )}
             
