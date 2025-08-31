@@ -40,10 +40,27 @@ const RoutineTable = ({ schedule, courses }) => {
 
   // Calculate position within hour using 6-point reference (10-minute intervals)
   const calculatePositionInHour = (timeStr) => {
-    const [, minutes] = timeStr.split(':').map(Number);
-    const minutesFromHourStart = minutes;
-    // Each 10-minute interval is 1/6 of an hour
-    return (minutesFromHourStart / 60) * 100; // Return as percentage
+    // Extract minutes from time string (handles both 12-hour and 24-hour formats)
+    let minutes;
+    if (timeStr.includes(':')) {
+      const timeParts = timeStr.split(':');
+      minutes = parseInt(timeParts[1], 10);
+    } else {
+      minutes = 0;
+    }
+    
+    // Ensure minutes is valid
+    if (isNaN(minutes)) {
+      console.warn('Invalid time format for positioning:', timeStr);
+      return 0;
+    }
+    
+    // Each 10-minute interval is 1/6 of an hour (16.67% of cell height)
+    // 0 min = 0%, 10 min = 16.67%, 20 min = 33.33%, 30 min = 50%, 40 min = 66.67%, 50 min = 83.33%
+    const positionPercentage = (minutes / 60) * 100;
+    
+    console.log(`Position calculation for ${timeStr}: ${minutes} minutes = ${positionPercentage}% offset`);
+    return positionPercentage;
   };
 
   // Calculate course height and position based on duration
@@ -57,16 +74,40 @@ const RoutineTable = ({ schedule, courses }) => {
     const endMinutes = parseTimeToMinutes(course.endTime);
     const durationMinutes = endMinutes - startMinutes;
     
-    // Responsive cell height calculation
-    const isMobile = window.innerWidth <= 768;
-    const cellHeight = isMobile ? 45 : 80;
+    // Responsive cell height calculation based on CSS breakpoints
+    const windowWidth = window.innerWidth;
+    let cellHeight;
+    if (windowWidth <= 400) {
+      cellHeight = 45; // Extra extra small mobile (400px breakpoint)
+    } else if (windowWidth <= 480) {
+      cellHeight = 50; // Extra small mobile (480px breakpoint) 
+    } else if (windowWidth <= 768) {
+      cellHeight = 60; // Small mobile (768px breakpoint)
+    } else {
+      cellHeight = 80; // Desktop/tablet
+    }
     
     // Height proportional to duration
     const height = (durationMinutes / 60) * cellHeight;
     
-    // Calculate top position within the starting hour cell
+    // Calculate top position within the starting hour cell using 6-point reference
     const startPosition = calculatePositionInHour(course.startTime);
     const topOffset = (startPosition / 100) * cellHeight; // Convert percentage to pixels
+    
+    // Debug logging for mobile positioning
+    if (windowWidth <= 768) {
+      console.log(`Mobile course metrics for ${course.courseCode}:`, {
+        windowWidth,
+        startTime: course.startTime,
+        endTime: course.endTime,
+        durationMinutes,
+        cellHeight,
+        height,
+        startPosition: `${startPosition}%`,
+        topOffset: `${topOffset}px`,
+        debugInfo: `6-point positioning: ${course.startTime} -> ${startPosition}% offset`
+      });
+    }
     
     return { height, topOffset };
   };
