@@ -172,14 +172,14 @@ const RoutineTable = ({ schedule, courses }) => {
                         className="course-block" 
                         style={{
                           backgroundColor: color,
-                          border: `2px solid ${color}`,
+                          border: `1px solid ${color}`,
                           color: '#fff',
-                          padding: window.innerWidth <= 768 ? '2px' : '6px',
+                          padding: window.innerWidth <= 768 ? '3px' : '6px',
                           borderRadius: '4px',
                           textAlign: 'center',
                           fontWeight: 'bold',
-                          fontSize: window.innerWidth <= 768 ? '0.5rem' : '11px',
-                          lineHeight: '1.2',
+                          fontSize: window.innerWidth <= 768 ? '0.55rem' : '11px',
+                          lineHeight: '1.1',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'center',
@@ -189,16 +189,17 @@ const RoutineTable = ({ schedule, courses }) => {
                           right: '2px',
                           height: `${height}px`,
                           zIndex: 2,
-                          boxSizing: 'border-box'
+                          boxSizing: 'border-box',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
                         }}
                       >
-                        <div className="course-name" style={{ marginBottom: '1px' }}>
+                        <div className="course-name" style={{ marginBottom: '1px', fontWeight: 'bold' }}>
                           {course.courseCode}
                         </div>
-                        <div className="course-time" style={{ opacity: 0.95 }}>
+                        <div className="course-time" style={{ opacity: 0.95, fontWeight: '500' }}>
                           {course.startTime} - {course.endTime}
                         </div>
-                        <div className="course-room" style={{ opacity: 0.9 }}>
+                        <div className="course-room" style={{ opacity: 0.9, fontWeight: '500' }}>
                           {course.room}
                         </div>
                       </div>
