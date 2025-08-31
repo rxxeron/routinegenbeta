@@ -1,212 +1,282 @@
 import React from 'react';
 
-const RoutineTable = ({ routineData }) => {
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-  // Create time slots: each hour divided into 6 slots (10-minute intervals)
-  const timeSlots = [];
-  for (let hour = 8; hour <= 19; hour++) {
-    for (let segment = 0; segment < 6; segment++) {
-      const minutes = segment * 10;
-      const timeStr = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;        
-      timeSlots.push(timeStr);
-    }
+const RoutineTable = ({ schedule, courses }) => {
+  if (!schedule || schedule.length === 0) {
+    return <div>No schedule to display</div>;
   }
 
-  const timeToMinutes = (timeStr) => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    return hours * 60 + minutes;
-  };
+  // Debug: Check Sunday course details
+  console.log('All schedule data:', schedule);
+  const uniqueDays = [...new Set(schedule.map(course => course.day))];
+  console.log('Unique days in data:', uniqueDays);
+  const sundayCourses = schedule.filter(course => course.day === 'Sunday');
+  console.log('Sunday courses found:', sundayCourses);
+  sundayCourses.forEach(course => {
+    console.log('Sunday course details:', {
+      courseCode: course.courseCode,
+      day: course.day,
+      startTime: course.startTime,
+      endTime: course.endTime,
+      room: course.room
+    });
+  });
 
-  // Function to find which time slot index a course should start at
-  const getTimeSlotIndex = (timeStr) => {
-    const minutes = timeToMinutes(timeStr);
-    const baseMinutes = timeToMinutes('08:00');
-    const slotIndex = Math.floor((minutes - baseMinutes) / 10);
-    return Math.max(0, slotIndex);
-  };
-
-  // Function to calculate how many 10-minute slots a course spans
-  const getCourseDuration = (startTime, endTime) => {
-    const startMinutes = timeToMinutes(startTime);
-    const endMinutes = timeToMinutes(endTime);
-    return Math.ceil((endMinutes - startMinutes) / 10);
-  };
-
-  const colors = [
-    '#FFB6C1', '#87CEEB', '#98FB98', '#F0E68C', '#DDA0DD',
-    '#FFE4B5', '#B0E0E6', '#FAFAD2', '#FFE4E1', '#E0E6FF'
+  const timeSlots = [
+    '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
+    '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', 
+    '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM'
   ];
 
-  const courseColors = {};
-  let colorIndex = 0;
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-  // Group courses by day
-  const coursesByDay = {};
-  days.forEach(day => {
-    coursesByDay[day] = routineData.filter(course => course.day === day);
-  });
+  // Get unique courses for color assignment
+  const uniqueCourses = [...new Set(schedule.map(course => course.courseCode))];
+  const courseColors = [
+    '#FF6B9D', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57',
+    '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3', '#FF9F43',
+    '#FC427B', '#2ED573', '#3742FA', '#F79F1F', '#A55EEA',
+    '#26DE81', '#FD79A8', '#FDCB6E', '#6C5CE7', '#74B9FF'
+  ];
 
-  // Assign colors to courses
-  routineData.forEach(course => {
-    if (!courseColors[course.courseCode]) {
-      courseColors[course.courseCode] = colors[colorIndex % colors.length];
-      colorIndex++;
+  // Calculate position within hour using 6-point reference (10-minute intervals)
+  const calculatePositionInHour = (timeStr) => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const minutesFromHourStart = minutes;
+    // Each 10-minute interval is 1/6 of an hour
+    return (minutesFromHourStart / 60) * 100; // Return as percentage
+  };
+
+  // Calculate course height and position based on duration
+  const getCourseMetrics = (course) => {
+    const parseTimeToMinutes = (timeStr) => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+    
+    const startMinutes = parseTimeToMinutes(course.startTime);
+    const endMinutes = parseTimeToMinutes(course.endTime);
+    const durationMinutes = endMinutes - startMinutes;
+    
+    // Base cell height is 80px per hour
+    const height = (durationMinutes / 60) * 80;
+    
+    // Calculate top position within the starting hour cell
+    const startPosition = calculatePositionInHour(course.startTime);
+    const topOffset = (startPosition / 100) * 80; // Convert percentage to pixels
+    
+    return { height, topOffset };
+  };
+
+  const getCourseForSlot = (day, timeSlot) => {
+    const foundCourse = schedule.find(course => {
+      // Make day matching more flexible to handle abbreviations
+      const courseDay = course.day;
+      const normalizedCourseDay = courseDay ? courseDay.toString().toLowerCase().trim() : '';
+      const normalizedDay = day.toLowerCase().trim();
+      
+      // Create comprehensive day mapping for abbreviations
+      const dayMatches = normalizedCourseDay === normalizedDay || 
+                        (normalizedDay === 'sunday' && (normalizedCourseDay === 's' || normalizedCourseDay === 'sun' || normalizedCourseDay === 'sunday')) ||
+                        (normalizedDay === 'monday' && (normalizedCourseDay === 'm' || normalizedCourseDay === 'mon' || normalizedCourseDay === 'monday')) ||
+                        (normalizedDay === 'tuesday' && (normalizedCourseDay === 't' || normalizedCourseDay === 'tue' || normalizedCourseDay === 'tuesday')) ||
+                        (normalizedDay === 'wednesday' && (normalizedCourseDay === 'w' || normalizedCourseDay === 'wed' || normalizedCourseDay === 'wednesday')) ||
+                        (normalizedDay === 'thursday' && (normalizedCourseDay === 'th' || normalizedCourseDay === 'thu' || normalizedCourseDay === 'thursday')) ||
+                        (normalizedDay === 'friday' && (normalizedCourseDay === 'f' || normalizedCourseDay === 'fri' || normalizedCourseDay === 'friday')) ||
+                        (normalizedDay === 'saturday' && (normalizedCourseDay === 'sa' || normalizedCourseDay === 'sat' || normalizedCourseDay === 'saturday'));
+      
+      if (!dayMatches) {
+        return false;
+      }
+      
+      // Convert times for comparison
+      const slotTime24 = convertTo24Hour(timeSlot);
+      const courseStart = course.startTime;
+      const courseEnd = course.endTime;
+      
+      if (!courseStart || !courseEnd) {
+        return false;
+      }
+      
+      // Parse times into minutes for easier comparison
+      const parseTimeToMinutes = (timeStr) => {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+      };
+      
+      const slotMinutes = parseTimeToMinutes(slotTime24);
+      const courseStartMinutes = parseTimeToMinutes(courseStart);
+      const courseEndMinutes = parseTimeToMinutes(courseEnd);
+      
+      // Show course if it overlaps with this hour slot
+      const slotEndMinutes = slotMinutes + 60; // End of current hour slot
+      
+      // Course overlaps with this slot if:
+      // Course starts before slot ends AND course ends after slot starts
+      const overlaps = courseStartMinutes < slotEndMinutes && courseEndMinutes > slotMinutes;
+      
+      // But only show in the starting hour to avoid duplicates
+      const slotHour = Math.floor(slotMinutes / 60);
+      const courseStartHour = Math.floor(courseStartMinutes / 60);
+      
+      return overlaps && slotHour === courseStartHour;
+    });
+    
+    return foundCourse;
+  };
+
+  // Calculate how many hour slots a course spans
+  const getRowSpan = (course) => {
+    const parseTimeToMinutes = (timeStr) => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+    
+    const courseStartMinutes = parseTimeToMinutes(course.startTime);
+    const courseEndMinutes = parseTimeToMinutes(course.endTime);
+    
+    const startHour = Math.floor(courseStartMinutes / 60);
+    const endHour = Math.floor((courseEndMinutes - 1) / 60); // -1 to handle exact hour endings correctly
+    
+    return Math.max(1, endHour - startHour + 1); // Ensure minimum span of 1
+  };
+
+  // Function to calculate how many slots a course should span
+  const getCourseDuration = (course) => {
+    const startTime = course.startTime;
+    const endTime = course.endTime;
+    
+    const startHour = parseInt(startTime.split(':')[0]);
+    const startMinute = parseInt(startTime.split(':')[1]);
+    const endHour = parseInt(endTime.split(':')[0]);
+    const endMinute = parseInt(endTime.split(':')[1]);
+    
+    const startTotalMinutes = startHour * 60 + startMinute;
+    const endTotalMinutes = endHour * 60 + endMinute;
+    const durationMinutes = endTotalMinutes - startTotalMinutes;
+    
+    // Calculate how many hour slots this spans (minimum 1)
+    return Math.max(1, Math.ceil(durationMinutes / 60));
+  };
+
+  const convertTo24Hour = (time12h) => {
+    const [timePart, modifier] = time12h.split(' ');
+    let [hours, minutes] = timePart.split(':');
+    
+    hours = parseInt(hours, 10);
+    
+    if (modifier === 'PM' && hours !== 12) {
+      hours += 12;
+    } else if (modifier === 'AM' && hours === 12) {
+      hours = 0;
     }
-  });
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes}`;
+  };
+
+  const convertTo12Hour = (time24h) => {
+    const [hours, minutes] = time24h.split(':');
+    const hour = parseInt(hours, 10);
+    
+    if (hour === 0) {
+      return `12:${minutes} AM`;
+    } else if (hour < 12) {
+      return `${hour}:${minutes} AM`;
+    } else if (hour === 12) {
+      return `12:${minutes} PM`;
+    } else {
+      return `${hour - 12}:${minutes} PM`;
+    }
+  };
 
   return (
-    <div className="routine-table">
-      <div className="schedule-grid">
-        {/* Header row */}
-        <div className="header-cell time-header">Time</div>
-        {days.map(day => (
-          <div key={day} className="header-cell day-header">
-            {day}
-          </div>
-        ))}
-
-        {/* Generate grid cells - show only hour markers for reference */}
-        {timeSlots.map((timeSlot, index) => {
-          const isHourMark = timeSlot.endsWith(':00');
-
-          return (
-            <React.Fragment key={timeSlot}>
-              {/* Time column - show only hour marks */}
-              <div className="time-cell">
-                {isHourMark ? timeSlot : ''}
-              </div>
-
-              {/* Day columns */}
-              {days.map(day => {
-                // Check if any course should be rendered at this slot
-                const coursesToRender = coursesByDay[day].filter(course => {
-                  const courseStartSlot = getTimeSlotIndex(course.startTime);
-                  return courseStartSlot === index;
-                });
-
-                return (
-                  <div key={`${day}-${timeSlot}`} className="schedule-cell">
-                    {coursesToRender.map((course, courseIndex) => {
-                      const duration = getCourseDuration(course.startTime, course.endTime);
-                      const height = duration * 10; // 10px per 10-minute slot
-
-                      // Use different sizing strategies for desktop vs mobile
-                      const isMobileDevice = window.innerWidth < 768;
-                      let codeFontSize, timeFontSize, roomFontSize;
-
-                      if (isMobileDevice) {
-                        // Mobile: Calculate optimal font sizes to fit content
-                        const containerWidth = window.innerWidth < 480 ? 35 : 50;
-
-                        // Calculate based on content length and available space for mobile
-                        const courseText = course.courseCode;
-                        const timeText = `${course.startTime.substring(0, 5)}-${course.endTime.substring(0, 5)}`;
-                        const roomText = course.room;
-
-                        // Calculate optimal sizes based on text length and container size
-                        codeFontSize = Math.min(12, Math.max(6, (containerWidth * 0.8) / Math.max(courseText.length * 0.6, 4)));
-                        timeFontSize = Math.min(14, Math.max(7, (containerWidth * 0.9) / Math.max(timeText.length * 0.5, 6)));
-                        roomFontSize = Math.min(12, Math.max(6, (containerWidth * 0.8) / Math.max(roomText.length * 0.6, 4)));
-                      } else {
-                        // Desktop: Use generous, readable sizes based on height
-                        codeFontSize = Math.max(10, Math.min(16, height / 5));
-                        timeFontSize = Math.max(12, Math.min(18, height / 3.5));
-                        roomFontSize = Math.max(10, Math.min(16, height / 4.5));
-                      }
-
-                      // More generous content thresholds, especially for mobile
-                      const isMobileDisplay = window.innerWidth < 480;
-                      const isTabletDisplay = window.innerWidth < 768;
-
-                      const showTime = isMobileDisplay ? height > 15 : isTabletDisplay ? height > 18 : height > 20;
-                      const showRoom = isMobileDisplay ? height > 30 : isTabletDisplay ? height > 32 : height > 35;
-                                   
-                      return (
-                        <div
-                          key={`${course.courseCode}-${courseIndex}`}
-                          className="course-block"
-                          style={{
-                            height: `${height}px`,
-                            backgroundColor: courseColors[course.courseCode],
-                            position: 'absolute',
-                            width: 'calc(100% - 2px)',
-                            left: '1px',
-                            top: '0',
-                            zIndex: 1
-                          }}
-                        >
-                          <div className="course-content">
-                            <div
-                              className="course-code"
-                              style={{
-                                fontSize: `${codeFontSize}px`,
-                                lineHeight: '1.1',
-                                marginBottom: showTime ? '2px' : '0',
-                                fontWeight: 'normal',
-                                opacity: 0.7
-                              }}
-                            >
-                              {isMobileDevice ? course.courseCode : course.courseCode}
-                            </div>
-                            {showTime && (
-                              <div
-                                className="course-time"
-                                style={{
-                                  fontSize: `${timeFontSize}px`,
-                                  lineHeight: '1.1',
-                                  marginBottom: showRoom ? '2px' : '0',
-                                  fontWeight: 'bold',
-                                  color: '#1a1a1a'
-                                }}
-                              >
-                                {isMobileDevice
-                                  ? `${course.startTime.substring(0, 5)}-${course.endTime.substring(0, 5)}`
-                                  : `${course.startTime} - ${course.endTime}`
-                                }
-                              </div>
-                            )}
-                            {showRoom && (
-                              <div
-                                className="course-room"
-                                style={{
-                                  fontSize: `${roomFontSize}px`,
-                                  lineHeight: '1.1',
-                                  fontWeight: 'bold',
-                                  color: '#2c5aa0'
-                                }}
-                              >
-                                {course.room}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </React.Fragment>
-          );
-        })}
-      </div>
-
-      {routineData.length > 0 && (
-        <div className="schedule-summary">
-          <h3>Course Summary</h3>
-          <div className="course-list">
-            {Object.keys(courseColors).map(courseCode => (
-              <div key={courseCode} className="course-summary-item">
-                <div
-                  className="course-color-indicator"
-                  style={{ backgroundColor: courseColors[courseCode] }}
-                ></div>
-                <span>{courseCode}</span>
-              </div>
+    <div className="schedule-container">
+      <table className="schedule-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            {days.map(day => (
+              <th key={day}>{day}</th>
             ))}
-          </div>
+          </tr>
+        </thead>
+        <tbody>
+          {timeSlots.map((timeSlot, timeIndex) => (
+            <tr key={timeSlot}>
+              <td className="time-cell">{timeSlot}</td>
+              {days.map((day, dayIndex) => {
+                const course = getCourseForSlot(day, timeSlot);
+                
+                if (course) {
+                  const colorIndex = uniqueCourses.findIndex(uc => uc === course.courseCode);
+                  const color = courseColors[colorIndex % courseColors.length];
+                  const { height, topOffset } = getCourseMetrics(course);
+                  
+                  return (
+                    <td key={`${day}-${timeSlot}`} className="schedule-cell" style={{ position: 'relative' }}>
+                      <div 
+                        className="course-block" 
+                        style={{
+                          backgroundColor: color,
+                          border: `2px solid ${color}`,
+                          color: '#fff',
+                          padding: '6px',
+                          borderRadius: '4px',
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          fontSize: '11px',
+                          lineHeight: '1.2',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          position: 'absolute',
+                          top: `${topOffset}px`,
+                          left: '2px',
+                          right: '2px',
+                          height: `${height}px`,
+                          zIndex: 2,
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        <div className="course-name" style={{ marginBottom: '2px', fontSize: '12px' }}>
+                          {course.courseCode}
+                        </div>
+                        <div className="course-time" style={{ fontSize: '9px', opacity: 0.9 }}>
+                          {course.startTime} - {course.endTime}
+                        </div>
+                        <div className="course-room" style={{ fontSize: '10px', opacity: 0.8 }}>
+                          {course.room}
+                        </div>
+                      </div>
+                    </td>
+                  );
+                }
+                
+                return <td key={`${day}-${timeSlot}`} className="schedule-cell"></td>;
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      
+      {/* Course Summary Section */}
+      <div className="schedule-summary">
+        <h3>📚 Course Summary</h3>
+        <div className="course-legend">
+          {uniqueCourses.map((courseCode, index) => (
+            <div 
+              key={courseCode}
+              className="course-legend-item"
+              style={{
+                backgroundColor: courseColors[index % courseColors.length],
+                color: '#fff'
+              }}
+            >
+              <span className="course-color-indicator">●</span>
+              <span className="course-code-legend">{courseCode}</span>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 };

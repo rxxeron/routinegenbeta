@@ -27,18 +27,24 @@
           window.jsPDF = jsPDF;
         }
         
-        console.log('jsPDF available:', !!window.jsPDF);
-        console.log('jsPDF type:', typeof window.jsPDF);
-        console.log('html2canvas available:', !!window.html2canvas);
+        console.log('🔍 Library Check:');
+        console.log('  jsPDF available:', !!window.jsPDF);
+        console.log('  jsPDF type:', typeof window.jsPDF);
+        console.log('  html2canvas available:', !!window.html2canvas);
+        console.log('  jspdf object:', window.jspdf);
         
-        // Test jsPDF constructor
+        // Test jsPDF constructor with detailed error reporting
         try {
           if (window.jsPDF) {
             const testPdf = new window.jsPDF();
-            console.log('jsPDF constructor test: SUCCESS');
+            console.log('✅ jsPDF constructor test: SUCCESS');
+            console.log('  PDF internal methods:', Object.keys(testPdf.internal || {}));
+          } else {
+            console.log('❌ jsPDF not found in any expected location');
           }
         } catch (e) {
-          console.error('jsPDF constructor test failed:', e);
+          console.error('❌ jsPDF constructor test failed:', e);
+          console.error('  Error details:', e.message, e.stack);
         }
       });
     </script>
