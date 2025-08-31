@@ -40,7 +40,7 @@ const RoutineTable = ({ schedule, courses }) => {
 
   // Calculate position within hour using 6-point reference (10-minute intervals)
   const calculatePositionInHour = (timeStr) => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
+    const [, minutes] = timeStr.split(':').map(Number);
     const minutesFromHourStart = minutes;
     // Each 10-minute interval is 1/6 of an hour
     return (minutesFromHourStart / 60) * 100; // Return as percentage
@@ -124,40 +124,6 @@ const RoutineTable = ({ schedule, courses }) => {
     return foundCourse;
   };
 
-  // Calculate how many hour slots a course spans
-  const getRowSpan = (course) => {
-    const parseTimeToMinutes = (timeStr) => {
-      const [hours, minutes] = timeStr.split(':').map(Number);
-      return hours * 60 + minutes;
-    };
-    
-    const courseStartMinutes = parseTimeToMinutes(course.startTime);
-    const courseEndMinutes = parseTimeToMinutes(course.endTime);
-    
-    const startHour = Math.floor(courseStartMinutes / 60);
-    const endHour = Math.floor((courseEndMinutes - 1) / 60); // -1 to handle exact hour endings correctly
-    
-    return Math.max(1, endHour - startHour + 1); // Ensure minimum span of 1
-  };
-
-  // Function to calculate how many slots a course should span
-  const getCourseDuration = (course) => {
-    const startTime = course.startTime;
-    const endTime = course.endTime;
-    
-    const startHour = parseInt(startTime.split(':')[0]);
-    const startMinute = parseInt(startTime.split(':')[1]);
-    const endHour = parseInt(endTime.split(':')[0]);
-    const endMinute = parseInt(endTime.split(':')[1]);
-    
-    const startTotalMinutes = startHour * 60 + startMinute;
-    const endTotalMinutes = endHour * 60 + endMinute;
-    const durationMinutes = endTotalMinutes - startTotalMinutes;
-    
-    // Calculate how many hour slots this spans (minimum 1)
-    return Math.max(1, Math.ceil(durationMinutes / 60));
-  };
-
   const convertTo24Hour = (time12h) => {
     const [timePart, modifier] = time12h.split(' ');
     let [hours, minutes] = timePart.split(':');
@@ -171,21 +137,6 @@ const RoutineTable = ({ schedule, courses }) => {
     }
     
     return `${hours.toString().padStart(2, '0')}:${minutes}`;
-  };
-
-  const convertTo12Hour = (time24h) => {
-    const [hours, minutes] = time24h.split(':');
-    const hour = parseInt(hours, 10);
-    
-    if (hour === 0) {
-      return `12:${minutes} AM`;
-    } else if (hour < 12) {
-      return `${hour}:${minutes} AM`;
-    } else if (hour === 12) {
-      return `12:${minutes} PM`;
-    } else {
-      return `${hour - 12}:${minutes} PM`;
-    }
   };
 
   return (
