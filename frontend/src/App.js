@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Analytics } from "@vercel/analytics/react";
 import FileUpload from './FileUpload';
 import RoutineTable from './RoutineTable';
@@ -8,6 +8,18 @@ function App() {
   const [routineData, setRoutineData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Update viewport meta tag based on view state
+  useEffect(() => {
+    const viewport = document.querySelector('meta[name=viewport]');
+    if (routineData.length > 0) {
+      // Switch to desktop viewport when schedule is shown
+      viewport.setAttribute('content', 'width=1024, initial-scale=1, user-scalable=yes, minimum-scale=1, maximum-scale=1');
+    } else {
+      // Use responsive viewport for upload view
+      viewport.setAttribute('content', 'width=device-width, initial-scale=1, user-scalable=yes');
+    }
+  }, [routineData.length]);
 
   const handleDataReceived = (data) => {
     setRoutineData(data);
@@ -373,7 +385,7 @@ function App() {
   };
 
   return (
-    <div className="App">
+    <div className={`App ${routineData.length > 0 ? 'schedule-view' : 'upload-view'}`}>
       <header className="App-header">
         <h1>📅 Schedule Generator for EWU Students!</h1>
         <p>Upload your Advising Slip - Weekly Schedule Appears Instantly with&nbsp;download&nbsp;option.</p>
