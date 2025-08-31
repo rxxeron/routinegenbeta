@@ -44,6 +44,31 @@ body {
   min-height: 100vh;
   color: var(--ewu-dark);
   line-height: 1.6;
+  /* Force desktop layout on all devices */
+  min-width: 1024px;
+  overflow-x: auto;
+}
+
+/* Force desktop layout - disable mobile responsive behavior */
+html {
+  min-width: 1024px;
+  overflow-x: auto;
+}
+
+/* Override responsive styles for consistent desktop experience */
+@media (max-width: 1200px), (max-width: 768px), (max-width: 480px), (max-width: 360px) {
+  * {
+    /* Reset all responsive overrides */
+    font-size: inherit !important;
+    padding: inherit !important;
+    margin: inherit !important;
+  }
+  
+  .container {
+    width: auto !important;
+    max-width: none !important;
+    min-width: 1024px !important;
+  }
 }
 
 
@@ -87,6 +112,9 @@ body {
   min-height: 100vh;
   text-align: center;
   animation: fadeInUp 0.8s ease-out;
+  /* Force desktop layout */
+  min-width: 1024px;
+  width: auto;
 }
 
 
@@ -629,7 +657,8 @@ body {
 
 
 
-@media (max-width: 1200px) {
+/* DISABLED: Force desktop layout - mobile responsive styles disabled */
+@media screen and (max-width: 1200px) and (min-width: 9999px) {
   .schedule-grid {
     grid-template-columns: 60px repeat(7, 1fr);
   }
@@ -648,7 +677,8 @@ body {
 }
 
 
-@media (max-width: 768px) {
+/* DISABLED: Force desktop layout - mobile responsive styles disabled */
+@media screen and (max-width: 768px) and (min-width: 9999px) {
   * {
     box-sizing: border-box;
   }
@@ -874,7 +904,8 @@ body {
 }
 
 
-@media (max-width: 480px) {
+/* DISABLED: Force desktop layout - mobile responsive styles disabled */
+@media screen and (max-width: 480px) and (min-width: 9999px) {
   .App {
     padding: 0;
     overflow-x: hidden;
@@ -1087,7 +1118,8 @@ body {
 }
 
 
-@media (max-width: 768px) and (orientation: landscape) {
+/* DISABLED: Force desktop layout - mobile responsive styles disabled */
+@media screen and (max-width: 768px) and (orientation: landscape) and (min-width: 9999px) {
   .schedule-grid {
     grid-template-columns: 50px repeat(7, 1fr);
     min-height: 400px;
@@ -1128,7 +1160,8 @@ body {
 }
 
 
-@media (hover: none) and (pointer: coarse) {
+/* DISABLED: Force desktop layout - mobile responsive styles disabled */
+@media (hover: none) and (pointer: coarse) and (min-width: 9999px) {
   .export-btn {
     padding: 16px 20px;
     font-size: 16px;
@@ -1170,7 +1203,8 @@ body {
   }
 }
 
-@media (max-width: 360px) {
+/* DISABLED: Force desktop layout - mobile responsive styles disabled */
+@media screen and (max-width: 360px) and (min-width: 9999px) {
   .schedule-grid {
     grid-template-columns: 40px repeat(7, 1fr);
     font-size: 10px;
@@ -1247,7 +1281,8 @@ body {
 }
 
 
-@media (max-width: 768px) {
+/* DISABLED: Force desktop layout - mobile responsive styles disabled */
+@media screen and (max-width: 768px) and (min-width: 9999px) {
   .app-footer {
     font-size: 0.8rem;
     padding: var(--spacing-sm);
@@ -1255,7 +1290,8 @@ body {
   }
 }
 
-@media (max-width: 480px) {
+/* DISABLED: Force desktop layout - mobile responsive styles disabled */
+@media screen and (max-width: 480px) and (min-width: 9999px) {
   .app-footer {
     font-size: 0.75rem;
     padding: var(--spacing-xs);
@@ -1342,7 +1378,8 @@ body {
   margin: 0;
 }
 
-@media (max-width: 768px) {
+/* DISABLED: Force desktop layout - mobile responsive styles disabled */
+@media screen and (max-width: 768px) and (min-width: 9999px) {
   .download-buttons {
     flex-direction: column;
   }
@@ -1353,7 +1390,8 @@ body {
   }
 }
 
-@media (max-width: 480px) {
+/* DISABLED: Force desktop layout - mobile responsive styles disabled */
+@media screen and (max-width: 480px) and (min-width: 9999px) {
   .download-btn {
     font-size: 0.8rem;
     padding: var(--spacing-xs);
