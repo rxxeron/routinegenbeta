@@ -1710,6 +1710,9 @@ body {
   .schedule-cell {
     width: 12%;
     height: 45px;
+    /* Maintain relative positioning for course blocks */
+    position: relative !important;
+    vertical-align: top;
   }
   
   .course-block {
@@ -1723,32 +1726,41 @@ body {
     justify-content: center;
     align-items: center;
     text-align: center;
-    min-height: 100%;
     box-sizing: border-box;
+    /* Maintain positioning system on mobile */
+    position: absolute !important;
+    left: 2px !important;
+    right: 2px !important;
+    /* Height and top will be set inline by JS */
+    z-index: 2 !important;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.3);
   }
   
   .course-name {
-    font-size: clamp(0.55rem, 2.5vw, 0.7rem);
+    font-size: clamp(0.6rem, 3.5vw, 0.8rem);
     line-height: 0.9;
     font-weight: bold;
     display: block;
     margin-bottom: 1px;
-    color: inherit;
+    color: #fff !important;
     max-width: 100%;
     word-wrap: break-word;
     hyphens: auto;
+    text-shadow: 0 0 2px rgba(0,0,0,0.5);
   }
   
   .course-time,
   .course-room {
-    font-size: clamp(0.45rem, 2vw, 0.6rem);
+    font-size: clamp(0.5rem, 2.8vw, 0.65rem);
     line-height: 0.9;
     display: block;
     margin: 0.5px 0;
-    color: inherit;
+    color: #fff !important;
     max-width: 100%;
     word-wrap: break-word;
-    opacity: 0.85;
+    opacity: 0.95;
+    text-shadow: 0 0 1px rgba(0,0,0,0.5);
   }
   
   .download-btn {

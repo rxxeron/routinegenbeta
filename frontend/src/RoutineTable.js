@@ -57,12 +57,16 @@ const RoutineTable = ({ schedule, courses }) => {
     const endMinutes = parseTimeToMinutes(course.endTime);
     const durationMinutes = endMinutes - startMinutes;
     
-    // Base cell height is 80px per hour
-    const height = (durationMinutes / 60) * 80;
+    // Responsive cell height calculation
+    const isMobile = window.innerWidth <= 768;
+    const cellHeight = isMobile ? 45 : 80;
+    
+    // Height proportional to duration
+    const height = (durationMinutes / 60) * cellHeight;
     
     // Calculate top position within the starting hour cell
     const startPosition = calculatePositionInHour(course.startTime);
-    const topOffset = (startPosition / 100) * 80; // Convert percentage to pixels
+    const topOffset = (startPosition / 100) * cellHeight; // Convert percentage to pixels
     
     return { height, topOffset };
   };
@@ -170,11 +174,11 @@ const RoutineTable = ({ schedule, courses }) => {
                           backgroundColor: color,
                           border: `2px solid ${color}`,
                           color: '#fff',
-                          padding: '6px',
+                          padding: window.innerWidth <= 768 ? '2px' : '6px',
                           borderRadius: '4px',
                           textAlign: 'center',
                           fontWeight: 'bold',
-                          fontSize: '11px',
+                          fontSize: window.innerWidth <= 768 ? '0.5rem' : '11px',
                           lineHeight: '1.2',
                           display: 'flex',
                           flexDirection: 'column',
@@ -188,13 +192,13 @@ const RoutineTable = ({ schedule, courses }) => {
                           boxSizing: 'border-box'
                         }}
                       >
-                        <div className="course-name" style={{ marginBottom: '2px', fontSize: '12px' }}>
+                        <div className="course-name" style={{ marginBottom: '1px' }}>
                           {course.courseCode}
                         </div>
-                        <div className="course-time" style={{ fontSize: '9px', opacity: 0.9 }}>
+                        <div className="course-time" style={{ opacity: 0.95 }}>
                           {course.startTime} - {course.endTime}
                         </div>
-                        <div className="course-room" style={{ fontSize: '10px', opacity: 0.8 }}>
+                        <div className="course-room" style={{ opacity: 0.9 }}>
                           {course.room}
                         </div>
                       </div>
