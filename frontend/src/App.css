@@ -522,6 +522,38 @@ body {
   height: calc(100% - 2px);
   font-size: 9px;
   line-height: 1.1;
+  position: absolute;
+  left: 0;
+  right: 0;
+  color: #333;
+  font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.course-name {
+  font-weight: bold;
+  line-height: 1.1;
+  margin-bottom: 1px;
+  display: block;
+  color: inherit;
+  word-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
+}
+
+.course-time,
+.course-room {
+  line-height: 1.0;
+  margin: 0.5px 0;
+  display: block;
+  color: inherit;
+  word-wrap: break-word;
+  opacity: 0.9;
+  max-width: 100%;
 }
 
 .course-block:hover {
@@ -1476,28 +1508,46 @@ body {
   .schedule-cell {
     width: 12.5%;
     min-width: auto;
-    height: 50px;
+    height: 60px;
   }
   
   .course-block {
     font-size: 0.6rem;
-    padding: 1px;
+    padding: 2px;
     line-height: 1.0;
     word-break: break-word;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 100%;
   }
   
   .course-name {
-    font-size: 0.55rem;
+    font-size: clamp(0.65rem, 3vw, 0.8rem);
     font-weight: bold;
     display: block;
+    line-height: 1.1;
+    margin-bottom: 1px;
+    color: inherit;
+    max-width: 100%;
+    word-wrap: break-word;
+    hyphens: auto;
   }
   
   .course-time,
   .course-room {
-    font-size: 0.5rem;
+    font-size: clamp(0.55rem, 2.5vw, 0.7rem);
     display: block;
+    line-height: 1.0;
+    margin: 0.5px 0;
+    color: inherit;
+    max-width: 100%;
+    word-wrap: break-word;
+    opacity: 0.95;
   }
   
   .download-buttons {
@@ -1560,30 +1610,46 @@ body {
   
   .schedule-cell {
     width: 12.14%;
-    height: 40px;
+    height: 50px;
   }
   
   .course-block {
     font-size: 0.55rem;
-    padding: 1px;
+    padding: 2px;
     line-height: 0.9;
     border-radius: 2px;
     word-break: break-word;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 100%;
   }
   
   .course-name {
-    font-size: 0.5rem;
+    font-size: clamp(0.6rem, 2.8vw, 0.75rem);
     font-weight: bold;
     display: block;
     line-height: 1.0;
+    margin-bottom: 1px;
+    color: inherit;
+    max-width: 100%;
+    word-wrap: break-word;
+    hyphens: auto;
   }
   
   .course-time,
   .course-room {
-    font-size: 0.45rem;
+    font-size: clamp(0.5rem, 2.3vw, 0.65rem);
     display: block;
     line-height: 1.0;
+    margin: 0.5px 0;
+    color: inherit;
+    max-width: 100%;
+    word-wrap: break-word;
+    opacity: 0.9;
   }
   
   .download-btn {
@@ -1643,26 +1709,46 @@ body {
   
   .schedule-cell {
     width: 12%;
-    height: 35px;
+    height: 45px;
   }
   
   .course-block {
     font-size: 0.5rem;
     line-height: 0.85;
-    padding: 0.5px;
+    padding: 1px;
     word-break: break-all;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 100%;
+    box-sizing: border-box;
   }
   
   .course-name {
-    font-size: 0.45rem;
+    font-size: clamp(0.55rem, 2.5vw, 0.7rem);
     line-height: 0.9;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 1px;
+    color: inherit;
+    max-width: 100%;
+    word-wrap: break-word;
+    hyphens: auto;
   }
   
   .course-time,
   .course-room {
-    font-size: 0.4rem;
+    font-size: clamp(0.45rem, 2vw, 0.6rem);
     line-height: 0.9;
+    display: block;
+    margin: 0.5px 0;
+    color: inherit;
+    max-width: 100%;
+    word-wrap: break-word;
+    opacity: 0.85;
   }
   
   .download-btn {
