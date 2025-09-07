@@ -1,7 +1,7 @@
 {
   "name": "schedule-generator-ewu-backend",
   "version": "1.0.0",
-  "description": "Backend server for Schedule Generator EWU - East West University Schedule Parser",
+  "description": "Backend server for Schedule Generator EWU - East West University Schedule Parser with PDF and Image OCR support",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
