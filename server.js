@@ -7,9 +7,6 @@ const fs = require('fs');
 const pdfParse = require('pdf-parse');
 const Tesseract = require('tesseract.js');
 const sharp = require('sharp');
-const pdfParse = require('pdf-parse');
-const Tesseract = require('tesseract.js');
-const sharp = require('sharp');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -95,11 +92,16 @@ function convertTo24Hour(time12h) {
 }
 
 // Function to parse PDF files
+// Function to parse PDF files
 async function parsePDFContent(buffer) {
   try {
+    console.log('Parsing PDF content...');
     const data = await pdfParse(buffer);
+    console.log('PDF parsed successfully. Text length:', data.text.length);
+    console.log('PDF text preview:', data.text.substring(0, 300));
     return data.text;
   } catch (error) {
+    console.error('PDF parsing error:', error);
     throw new Error('Failed to parse PDF: ' + error.message);
   }
 }
@@ -107,124 +109,125 @@ async function parsePDFContent(buffer) {
 // Function to parse image files using OCR
 async function parseImageContent(buffer, mimetype) {
   try {
+    console.log('Processing image with OCR...');
+    console.log('Image mimetype:', mimetype);
+    console.log('Image buffer size:', buffer.length);
+    
     // Convert image to supported format if needed
     let processedBuffer = buffer;
     if (mimetype === 'image/jpeg' || mimetype === 'image/jpg') {
+      console.log('Converting JPEG to PNG for better OCR...');
       processedBuffer = await sharp(buffer).png().toBuffer();
     }
     
+    console.log('Starting Tesseract OCR...');
     const { data: { text } } = await Tesseract.recognize(processedBuffer, 'eng', {
-      logger: m => console.log('OCR Progress:', m)
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+        }
+      }
     });
     
+    console.log('OCR completed. Text length:', text.length);
+    console.log('OCR text preview:', text.substring(0, 300));
     return text;
   } catch (error) {
+    console.error('Image OCR error:', error);
     throw new Error('Failed to parse image: ' + error.message);
   }
 }
 
 // Function to extract course data from text content
 function extractCourseDataFromText(textContent) {
+  console.log('Extracting course data from text...');
+  console.log('Text content length:', textContent.length);
+  console.log('First 500 characters of text:', textContent.substring(0, 500));
+  
   const lines = textContent.split('\n');
   const courses = [];
   
-  // Look for patterns that match course information
-  // This is a basic implementation - you may need to adjust based on your specific PDF/image format
+  // Multiple regex patterns to try different formats
+  const patterns = [
+    // Pattern 1: Course code, day codes, time range (e.g., "CSE101 TR 10:00AM-11:30AM")
+    /([A-Z]{2,4}\d{3,4}[A-Za-z\s]*)\s+([SMTWRFA]+)\s+(\d{1,2}:\d{2}[AP]M)-(\d{1,2}:\d{2}[AP]M)/,
+    
+    // Pattern 2: More flexible course code, day codes, time range
+    /([A-Z]{2,6}\d{3,4}[A-Za-z\s]*)\s+([SMTWRFA]+)\s+(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)/,
+    
+    // Pattern 3: Course code with spaces, then days and times
+    /([A-Z]{2,4}\s*\d{3,4}[A-Za-z\s]*)\s+([SMTWRFA]+)\s+(\d{1,2}:\d{2}[AP]M)\s*-\s*(\d{1,2}:\d{2}[AP]M)/,
+    
+    // Pattern 4: Look for Time-WeekDay pattern (like Excel format)
+    /([A-Z]{2,6}\d{3,4}[A-Za-z\s]*).+?([SMTWRFA]+)\s+(\d{1,2}:\d{2}[AP]M)-(\d{1,2}:\d{2}[AP]M)/,
+    
+    // Pattern 5: Look for course followed by day and time on same or next line
+    /([A-Z]{2,4}\d{3,4}[A-Za-z\s]*).{0,50}([SMTWRFA]+).{0,20}(\d{1,2}:\d{2}[AP]M).{0,5}(\d{1,2}:\d{2}[AP]M)/
+  ];
+  
+  console.log('Processing', lines.length, 'lines of text...');
+  
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
+    if (line.length < 5) continue; // Skip very short lines
     
-    // Look for course pattern: Course code followed by time and days
-    const courseMatch = line.match(/([A-Z]{2,4}\d{3,4}.*?)\s+([SMTWRFA]+)\s+(\d{1,2}:\d{2}[AP]M)-(\d{1,2}:\d{2}[AP]M)/);
+    console.log(`Line ${i}: "${line}"`);
     
-    if (courseMatch) {
-      const [, courseCode, dayString, startTime, endTime] = courseMatch;
+    // Try each pattern
+    for (let patternIndex = 0; patternIndex < patterns.length; patternIndex++) {
+      const pattern = patterns[patternIndex];
+      const courseMatch = line.match(pattern);
       
-      // Parse days
-      const days = [];
-      for (let j = 0; j < dayString.length; j++) {
-        const dayCode = dayString[j];
-        if (DAY_MAPPING[dayCode]) {
-          days.push(DAY_MAPPING[dayCode]);
-        }
-      }
-      
-      // Create course entries for each day
-      days.forEach(day => {
-        courses.push({
-          courseCode: courseCode.trim(),
-          day: day,
-          startTime: convertTo24Hour(startTime),
-          endTime: convertTo24Hour(endTime),
-          room: '' // Room info may need additional parsing
+      if (courseMatch) {
+        console.log(`✅ Match found with pattern ${patternIndex + 1}:`, courseMatch);
+        
+        const [, courseCode, dayString, startTime, endTime] = courseMatch;
+        
+        // Clean up the extracted data
+        const cleanCourseCode = courseCode.trim().replace(/\s+/g, ' ');
+        const cleanDayString = dayString.trim();
+        const cleanStartTime = startTime.trim().replace(/\s/g, '');
+        const cleanEndTime = endTime.trim().replace(/\s/g, '');
+        
+        console.log('Extracted data:', {
+          courseCode: cleanCourseCode,
+          dayString: cleanDayString,
+          startTime: cleanStartTime,
+          endTime: cleanEndTime
         });
-      });
+        
+        // Parse days
+        const days = [];
+        for (let j = 0; j < cleanDayString.length; j++) {
+          const dayCode = cleanDayString[j];
+          if (DAY_MAPPING[dayCode]) {
+            days.push(DAY_MAPPING[dayCode]);
+          }
+        }
+        
+        console.log('Mapped days:', days);
+        
+        // Create course entries for each day
+        days.forEach(day => {
+          const courseEntry = {
+            courseCode: cleanCourseCode,
+            day: day,
+            startTime: convertTo24Hour(cleanStartTime),
+            endTime: convertTo24Hour(cleanEndTime),
+            room: '' // Room info may need additional parsing
+          };
+          
+          courses.push(courseEntry);
+          console.log('Added course:', courseEntry);
+        });
+        
+        break; // Found a match, no need to try other patterns for this line
+      }
     }
   }
   
+  console.log('Total courses extracted:', courses.length);
   return courses;
-}
-
-// Helper function to extract text from PDF
-async function extractTextFromPDF(buffer) {
-  try {
-    const pdfData = await pdfParse(buffer);
-    return pdfData.text;
-  } catch (error) {
-    console.error('Error extracting text from PDF:', error);
-    throw new Error('Failed to extract text from PDF');
-  }
-}
-
-// Helper function to extract text from images using OCR
-async function extractTextFromImage(buffer, mimetype) {
-  try {
-    // Convert image to PNG if needed for better OCR results
-    let processedBuffer = buffer;
-    if (mimetype !== 'image/png') {
-      processedBuffer = await sharp(buffer).png().toBuffer();
-    }
-    
-    const { data: { text } } = await Tesseract.recognize(processedBuffer, 'eng', {
-      logger: m => console.log('OCR Progress:', m)
-    });
-    
-    return text;
-  } catch (error) {
-    console.error('Error extracting text from image:', error);
-    throw new Error('Failed to extract text from image');
-  }
-}
-
-// Helper function to parse text data into structured format
-function parseTextToScheduleData(text) {
-  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  
-  // Find header row
-  let headerRowIndex = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].toLowerCase().includes('course') || 
-        lines[i].toLowerCase().includes('time') ||
-        lines[i].toLowerCase().includes('subject')) {
-      headerRowIndex = i;
-      break;
-    }
-  }
-  
-  if (headerRowIndex === -1) {
-    throw new Error('Could not find course header in the extracted text');
-  }
-  
-  const data = [];
-  // Convert text lines to array format similar to Excel parsing
-  lines.forEach(line => {
-    // Split by common separators (tabs, multiple spaces, commas)
-    const row = line.split(/\t|,|\s{2,}/).map(cell => cell.trim());
-    if (row.length > 1) {
-      data.push(row);
-    }
-  });
-  
-  return data;
 }
 
 app.post('/api/upload', upload.single('file'), async (req, res) => {
@@ -324,19 +327,71 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     }
 
     if (courses.length === 0) {
-      return res.status(400).json({ error: 'No course data found in the file. Please check the file format.' });
+      console.log('❌ No courses were extracted from the file');
+      return res.status(400).json({ 
+        error: 'No course data found in the file. Please check the file format.',
+        details: 'The file was processed but no recognizable course schedule data was found. Make sure the file contains course codes, day codes (M,T,W,R,F,S,A), and time information.',
+        fileType: req.file.mimetype,
+        fileName: req.file.originalname
+      });
     }
 
+    console.log(`✅ Successfully extracted ${courses.length} course entries`);
     res.json(courses);
 
   } catch (error) {
-    console.error('Error parsing file:', error);
-    res.status(500).json({ error: 'Error parsing file: ' + error.message });
+    console.error('❌ Error parsing file:', error);
+    res.status(500).json({ 
+      error: 'Error parsing file: ' + error.message,
+      details: 'There was an error processing your file. Please try again or contact support.',
+      fileType: req.file ? req.file.mimetype : 'unknown',
+      fileName: req.file ? req.file.originalname : 'unknown'
+    });
   }
 });
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running' });
+});
+
+// Test endpoint to help debug text parsing
+app.post('/api/test-parse', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    console.log('🧪 Testing file parsing...');
+    console.log('File:', req.file.originalname, 'Type:', req.file.mimetype);
+
+    let extractedText = '';
+    
+    if (req.file.mimetype === 'application/pdf') {
+      extractedText = await parsePDFContent(req.file.buffer);
+    } else if (req.file.mimetype.startsWith('image/')) {
+      extractedText = await parseImageContent(req.file.buffer, req.file.mimetype);
+    } else {
+      return res.status(400).json({ error: 'Only PDF and Image files supported for testing' });
+    }
+
+    const courses = extractCourseDataFromText(extractedText);
+
+    res.json({
+      success: true,
+      extractedText: extractedText,
+      textLength: extractedText.length,
+      coursesFound: courses.length,
+      courses: courses,
+      preview: extractedText.substring(0, 500)
+    });
+
+  } catch (error) {
+    console.error('Test parsing error:', error);
+    res.status(500).json({ 
+      error: error.message,
+      stack: error.stack
+    });
+  }
 });
 function generateScheduleHTML(courses) {
   // Check if there are any Friday courses
