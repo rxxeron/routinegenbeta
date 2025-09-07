@@ -1445,6 +1445,15 @@ body {
   background: linear-gradient(135deg, #138496 0%, #0f6674 100%);
 }
 
+.start-over-btn {
+  background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+  color: white;
+}
+
+.start-over-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
+}
+
 .download-error {
   background-color: #f8d7da;
   color: #721c24;

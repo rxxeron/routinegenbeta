@@ -2,25 +2,72 @@ import React, { useState } from 'react';
 import { Analytics } from "@vercel/analytics/react";
 import FileUpload from './FileUpload';
 import RoutineTable from './RoutineTable';
+import EditableDataTable from './EditableDataTable';
 import './App.css';
 
 function App() {
   const [routineData, setRoutineData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showDataVerification, setShowDataVerification] = useState(false);
+  const [extractedData, setExtractedData] = useState([]);
+  const [uploadedFileInfo, setUploadedFileInfo] = useState(null);
 
-  const handleDataReceived = (data) => {
-    setRoutineData(data);
+  const handleDataReceived = (data, fileInfo = null) => {
+    // Check if this is data from a PDF or image that needs verification
+    const needsVerification = fileInfo && (
+      fileInfo.type === 'application/pdf' || 
+      fileInfo.type.startsWith('image/')
+    );
+
+    if (needsVerification) {
+      // Show data verification step for PDF/Image files
+      setExtractedData(data);
+      setUploadedFileInfo(fileInfo);
+      setShowDataVerification(true);
+      setRoutineData([]);
+    } else {
+      // Direct flow for CSV/Excel files
+      setRoutineData(data);
+      setShowDataVerification(false);
+      setExtractedData([]);
+    }
     setError('');
+  };
+
+  const handleDataConfirmed = (confirmedData) => {
+    // User confirmed the data from verification table
+    setRoutineData(confirmedData);
+    setShowDataVerification(false);
+    setExtractedData([]);
+    setUploadedFileInfo(null);
+  };
+
+  const handleDataVerificationCancel = () => {
+    // User cancelled data verification, go back to upload
+    setShowDataVerification(false);
+    setExtractedData([]);
+    setUploadedFileInfo(null);
+    setRoutineData([]);
   };
 
   const handleError = (errorMessage) => {
     setError(errorMessage);
     setRoutineData([]);
+    setShowDataVerification(false);
+    setExtractedData([]);
   };
 
   const handleLoadingChange = (isLoading) => {
     setLoading(isLoading);
+  };
+
+  const handleStartOver = () => {
+    setRoutineData([]);
+    setShowDataVerification(false);
+    setExtractedData([]);
+    setUploadedFileInfo(null);
+    setError('');
   };
 
   const handleExportPDF = async () => {
@@ -431,7 +478,8 @@ function App() {
       </header>
 
       <main className="App-main">
-        {routineData.length === 0 && (
+        {/* Upload Section - Show when no data and not in verification mode */}
+        {!showDataVerification && routineData.length === 0 && (
           <div className="upload-section">
             <FileUpload
               onDataReceived={handleDataReceived}
@@ -453,7 +501,31 @@ function App() {
           </div>
         )}
 
-        {routineData.length > 0 && (
+        {/* Data Verification Section - Show for PDF/Image uploads */}
+        {showDataVerification && extractedData.length > 0 && (
+          <div className="verification-section">
+            <EditableDataTable
+              extractedData={extractedData}
+              onConfirm={handleDataConfirmed}
+              onCancel={handleDataVerificationCancel}
+            />
+
+            {loading && (
+              <div className="loading">
+                <p>📊 Processing your changes...</p>
+              </div>
+            )}
+
+            {error && (
+              <div className="error">
+                <p>Error: {error}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Final Schedule Section - Show when data is confirmed */}
+        {!showDataVerification && routineData.length > 0 && (
           <div className="schedule-section">
             <div className="download-controls">
               <div className="download-buttons">
@@ -470,6 +542,13 @@ function App() {
                   disabled={loading}
                 >
                   🖼️ Download PNG
+                </button>
+                <button 
+                  className="download-btn start-over-btn" 
+                  onClick={handleStartOver}
+                  disabled={loading}
+                >
+                  🔄 Upload New File
                 </button>
               </div>
             </div>

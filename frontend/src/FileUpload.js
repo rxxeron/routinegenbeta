@@ -51,7 +51,13 @@ const FileUpload = ({ onDataReceived, onError, onLoadingChange }) => {
       });
 
       if (response.data && response.data.length > 0) {
-        onDataReceived(response.data);
+        // Pass both data and file info to parent component
+        const fileInfo = {
+          name: file.name,
+          type: file.type,
+          size: file.size
+        };
+        onDataReceived(response.data, fileInfo);
       } else {
         onError('No course data found in the file. Please check the file format.');
       }
