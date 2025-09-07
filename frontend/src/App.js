@@ -11,7 +11,6 @@ function App() {
   const [error, setError] = useState('');
   const [showDataVerification, setShowDataVerification] = useState(false);
   const [extractedData, setExtractedData] = useState([]);
-  const [uploadedFileInfo, setUploadedFileInfo] = useState(null);
 
   const handleDataReceived = (data, fileInfo = null) => {
     // Check if this is data from a PDF or image that needs verification
@@ -23,7 +22,6 @@ function App() {
     if (needsVerification) {
       // Show data verification step for PDF/Image files
       setExtractedData(data);
-      setUploadedFileInfo(fileInfo);
       setShowDataVerification(true);
       setRoutineData([]);
     } else {
@@ -40,14 +38,12 @@ function App() {
     setRoutineData(confirmedData);
     setShowDataVerification(false);
     setExtractedData([]);
-    setUploadedFileInfo(null);
   };
 
   const handleDataVerificationCancel = () => {
     // User cancelled data verification, go back to upload
     setShowDataVerification(false);
     setExtractedData([]);
-    setUploadedFileInfo(null);
     setRoutineData([]);
   };
 
@@ -66,7 +62,6 @@ function App() {
     setRoutineData([]);
     setShowDataVerification(false);
     setExtractedData([]);
-    setUploadedFileInfo(null);
     setError('');
   };
 
