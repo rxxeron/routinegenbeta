@@ -4,12 +4,15 @@ A full-stack MERN application that parses university advising slips (CSV files) 
 
 ## Features
 
-- Upload CSV files containing university course schedules
+- Upload multiple file formats: CSV, Excel (.xlsx/.xls), PDF, and Images (JPG/PNG)
+- Advanced OCR text extraction from images and PDFs
 - Parse course information including course codes, times, days, and rooms
-- Display courses in a visual weekly calendar grid
+- Display courses in a visual weekly calendar grid starting with Sunday
+- Intelligent Friday inclusion (only shows Friday if courses are scheduled)
 - Responsive design that works on desktop and mobile
 - Color-coded course blocks for easy identification
-- Support for multi-day courses (e.g., TR for Tuesday/Thursday)
+- Support for multi-day courses (e.g., TR for Tuesday/Thursday, MW for Monday/Wednesday)
+- Enhanced day code mapping including Friday support (F = Friday)
 
 ## Project Structure
 
@@ -38,7 +41,10 @@ The application uses the following day code mapping:
 - `T` = Tuesday
 - `W` = Wednesday
 - `R` = Thursday
+- `F` = Friday
 - `A` = Saturday
+
+**Note**: Friday is only displayed in the schedule if there are courses with the 'F' day code.
 
 ## Installation & Setup
 
@@ -98,13 +104,16 @@ The application uses the following day code mapping:
 4. Click "Upload & Process" to parse the file
 5. View your weekly schedule in the visual calendar grid
 
-## Expected CSV Format
+## Supported File Formats
 
-Your CSV file should contain:
+The application supports multiple file formats:
+
+### CSV/Excel Files (.csv, .xlsx, .xls)
+Your file should contain:
 - A row with "Course(s)" header
 - Subsequent rows with course data including:
   - Course name/code
-  - Time-WeekDay column (e.g., "TR 10:10AM-11:40AM")
+  - Time-WeekDay column (e.g., "TR 10:10AM-11:40AM", "MWF 9:00AM-10:30AM")
   - Room information
 
 Example CSV content:
@@ -112,15 +121,31 @@ Example CSV content:
 Course(s),,,Time-WeekDay,,,Room
 ENG7102,,,MW 4:50PM-6:20PM,,,221
 ICE109,,,TR 10:10AM-11:40AM,,,AB3-302
-MAT102,,,TR 11:50AM-1:20PM,,,AB3-401
+MAT102,,,MWF 11:50AM-1:20PM,,,AB3-401
 ```
+
+### PDF Files (.pdf)
+- PDF documents containing course schedules
+- Text is automatically extracted and parsed
+- Should contain course information in a structured format
+
+### Image Files (.jpg, .jpeg, .png)
+- Images of course schedules or advising slips
+- Uses OCR (Optical Character Recognition) to extract text
+- Works best with clear, high-contrast images
+- Recommended: scan documents at 300 DPI or higher for best results
 
 ## API Endpoints
 
 ### POST /api/upload
-- Accepts multipart form data with a CSV file
+- Accepts multipart form data with various file formats:
+  - CSV files (.csv)
+  - Excel files (.xlsx, .xls)
+  - PDF files (.pdf) with automatic text extraction
+  - Image files (.jpg, .jpeg, .png) with OCR processing
 - Returns JSON array of parsed course objects
 - Each course object contains: courseCode, day, startTime, endTime, room
+- Automatically detects file type and applies appropriate parsing method
 
 ### GET /api/health
 - Health check endpoint
@@ -133,6 +158,9 @@ MAT102,,,TR 11:50AM-1:20PM,,,AB3-401
 - Express.js
 - Multer (file upload handling)
 - XLSX (CSV/Excel parsing)
+- PDF-Parse (PDF text extraction)
+- Tesseract.js (OCR for images)
+- Sharp (image processing)
 - CORS (Cross-Origin Resource Sharing)
 
 ### Frontend

@@ -4,6 +4,12 @@ const multer = require('multer');
 const xlsx = require('xlsx');
 const path = require('path');
 const fs = require('fs');
+const pdfParse = require('pdf-parse');
+const Tesseract = require('tesseract.js');
+const sharp = require('sharp');
+const pdfParse = require('pdf-parse');
+const Tesseract = require('tesseract.js');
+const sharp = require('sharp');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -32,6 +38,7 @@ const DAY_MAPPING = {
   'T': 'Tuesday',
   'W': 'Wednesday',
   'R': 'Thursday',
+  'F': 'Friday',
   'A': 'Saturday'
 };
 function parseTimeWeekDay(timeWeekDayStr) {
@@ -87,79 +94,237 @@ function convertTo24Hour(time12h) {
   return `${hours.toString().padStart(2, '0')}:${minutes}`;
 }
 
-app.post('/api/upload', upload.single('file'), (req, res) => {
+// Function to parse PDF files
+async function parsePDFContent(buffer) {
+  try {
+    const data = await pdfParse(buffer);
+    return data.text;
+  } catch (error) {
+    throw new Error('Failed to parse PDF: ' + error.message);
+  }
+}
+
+// Function to parse image files using OCR
+async function parseImageContent(buffer, mimetype) {
+  try {
+    // Convert image to supported format if needed
+    let processedBuffer = buffer;
+    if (mimetype === 'image/jpeg' || mimetype === 'image/jpg') {
+      processedBuffer = await sharp(buffer).png().toBuffer();
+    }
+    
+    const { data: { text } } = await Tesseract.recognize(processedBuffer, 'eng', {
+      logger: m => console.log('OCR Progress:', m)
+    });
+    
+    return text;
+  } catch (error) {
+    throw new Error('Failed to parse image: ' + error.message);
+  }
+}
+
+// Function to extract course data from text content
+function extractCourseDataFromText(textContent) {
+  const lines = textContent.split('\n');
+  const courses = [];
+  
+  // Look for patterns that match course information
+  // This is a basic implementation - you may need to adjust based on your specific PDF/image format
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Look for course pattern: Course code followed by time and days
+    const courseMatch = line.match(/([A-Z]{2,4}\d{3,4}.*?)\s+([SMTWRFA]+)\s+(\d{1,2}:\d{2}[AP]M)-(\d{1,2}:\d{2}[AP]M)/);
+    
+    if (courseMatch) {
+      const [, courseCode, dayString, startTime, endTime] = courseMatch;
+      
+      // Parse days
+      const days = [];
+      for (let j = 0; j < dayString.length; j++) {
+        const dayCode = dayString[j];
+        if (DAY_MAPPING[dayCode]) {
+          days.push(DAY_MAPPING[dayCode]);
+        }
+      }
+      
+      // Create course entries for each day
+      days.forEach(day => {
+        courses.push({
+          courseCode: courseCode.trim(),
+          day: day,
+          startTime: convertTo24Hour(startTime),
+          endTime: convertTo24Hour(endTime),
+          room: '' // Room info may need additional parsing
+        });
+      });
+    }
+  }
+  
+  return courses;
+}
+
+// Helper function to extract text from PDF
+async function extractTextFromPDF(buffer) {
+  try {
+    const pdfData = await pdfParse(buffer);
+    return pdfData.text;
+  } catch (error) {
+    console.error('Error extracting text from PDF:', error);
+    throw new Error('Failed to extract text from PDF');
+  }
+}
+
+// Helper function to extract text from images using OCR
+async function extractTextFromImage(buffer, mimetype) {
+  try {
+    // Convert image to PNG if needed for better OCR results
+    let processedBuffer = buffer;
+    if (mimetype !== 'image/png') {
+      processedBuffer = await sharp(buffer).png().toBuffer();
+    }
+    
+    const { data: { text } } = await Tesseract.recognize(processedBuffer, 'eng', {
+      logger: m => console.log('OCR Progress:', m)
+    });
+    
+    return text;
+  } catch (error) {
+    console.error('Error extracting text from image:', error);
+    throw new Error('Failed to extract text from image');
+  }
+}
+
+// Helper function to parse text data into structured format
+function parseTextToScheduleData(text) {
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  
+  // Find header row
+  let headerRowIndex = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].toLowerCase().includes('course') || 
+        lines[i].toLowerCase().includes('time') ||
+        lines[i].toLowerCase().includes('subject')) {
+      headerRowIndex = i;
+      break;
+    }
+  }
+  
+  if (headerRowIndex === -1) {
+    throw new Error('Could not find course header in the extracted text');
+  }
+  
+  const data = [];
+  // Convert text lines to array format similar to Excel parsing
+  lines.forEach(line => {
+    // Split by common separators (tabs, multiple spaces, commas)
+    const row = line.split(/\t|,|\s{2,}/).map(cell => cell.trim());
+    if (row.length > 1) {
+      data.push(row);
+    }
+  });
+  
+  return data;
+}
+
+app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       console.log('No file uploaded');
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    console.log('File received:', req.file.originalname, 'Size:', req.file.size);
+    console.log('File received:', req.file.originalname, 'Size:', req.file.size, 'Type:', req.file.mimetype);
 
-    const workbook = xlsx.read(req.file.buffer);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
-
-    let headerRowIndex = -1;
-    for (let i = 0; i < data.length; i++) {
-      const row = data[i];
-      if (row && row.some(cell => cell && cell.toString().includes('Course(s)'))) {
-        headerRowIndex = i;
-        break;
-      }
-    }
-
-    if (headerRowIndex === -1) {
-      console.log('Could not find Course(s) header');
-      return res.status(400).json({ error: 'Could not find Course(s) header in the file' });
-    }
-
-    const headerRow = data[headerRowIndex];
+    let courses = [];
     
-    let courseNameCol = -1;
-    let timeWeekDayCol = -1;
-    let roomCol = -1;
+    // Handle different file types
+    if (req.file.mimetype === 'application/pdf') {
+      console.log('Processing PDF file...');
+      const text = await parsePDFContent(req.file.buffer);
+      courses = extractCourseDataFromText(text);
+    } else if (req.file.mimetype.startsWith('image/')) {
+      console.log('Processing image file with OCR...');
+      const text = await parseImageContent(req.file.buffer, req.file.mimetype);
+      courses = extractCourseDataFromText(text);
+    } else if (req.file.mimetype.includes('sheet') || req.file.mimetype.includes('excel') || 
+               req.file.originalname.toLowerCase().endsWith('.csv') ||
+               req.file.originalname.toLowerCase().endsWith('.xlsx') ||
+               req.file.originalname.toLowerCase().endsWith('.xls')) {
+      console.log('Processing Excel/CSV file...');
+      
+      const workbook = xlsx.read(req.file.buffer);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
 
-    for (let i = 0; i < headerRow.length; i++) {
-      const cell = headerRow[i];
-      if (cell && cell.toString().includes('Course(s)')) {
-        courseNameCol = i;
-        console.log('Course column found at:', i);
-      } else if (cell && cell.toString().includes('Time-WeekDay')) {
-        timeWeekDayCol = i;
-        console.log('Time-WeekDay column found at:', i);
-      } else if (cell && cell.toString().includes('Room')) {
-        roomCol = i;
-        console.log('Room column found at:', i);
+      let headerRowIndex = -1;
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        if (row && row.some(cell => cell && cell.toString().includes('Course(s)'))) {
+          headerRowIndex = i;
+          break;
+        }
       }
+
+      if (headerRowIndex === -1) {
+        console.log('Could not find Course(s) header');
+        return res.status(400).json({ error: 'Could not find Course(s) header in the file' });
+      }
+
+      const headerRow = data[headerRowIndex];
+      
+      let courseNameCol = -1;
+      let timeWeekDayCol = -1;
+      let roomCol = -1;
+
+      for (let i = 0; i < headerRow.length; i++) {
+        const cell = headerRow[i];
+        if (cell && cell.toString().includes('Course(s)')) {
+          courseNameCol = i;
+          console.log('Course column found at:', i);
+        } else if (cell && cell.toString().includes('Time-WeekDay')) {
+          timeWeekDayCol = i;
+          console.log('Time-WeekDay column found at:', i);
+        } else if (cell && cell.toString().includes('Room')) {
+          roomCol = i;
+          console.log('Room column found at:', i);
+        }
+      }
+
+      console.log('Column indices - Course:', courseNameCol, 'Time:', timeWeekDayCol, 'Room:', roomCol);
+
+      for (let i = headerRowIndex + 1; i < data.length; i++) {
+        const row = data[i];
+        
+        if (!row || !row[courseNameCol] || row[courseNameCol].toString().trim() === '') {
+          break;
+        }
+
+        const courseName = row[courseNameCol].toString().trim();
+        const timeWeekDay = row[timeWeekDayCol] ? row[timeWeekDayCol].toString().trim() : '';
+        const room = row[roomCol] ? row[roomCol].toString().trim() : '';
+
+        const timeSlots = parseTimeWeekDay(timeWeekDay);
+
+        timeSlots.forEach(slot => {
+          courses.push({
+            courseCode: courseName,
+            day: slot.day,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            room: room
+          });
+        });
+      }
+    } else {
+      return res.status(400).json({ 
+        error: 'Unsupported file type. Please upload CSV, Excel (.xlsx/.xls), PDF, or Image (JPG/PNG) files.' 
+      });
     }
 
-    console.log('Column indices - Course:', courseNameCol, 'Time:', timeWeekDayCol, 'Room:', roomCol);
-
-    const courses = [];
-    for (let i = headerRowIndex + 1; i < data.length; i++) {
-      const row = data[i];
-      
-      if (!row || !row[courseNameCol] || row[courseNameCol].toString().trim() === '') {
-        break;
-      }
-
-      const courseName = row[courseNameCol].toString().trim();
-      const timeWeekDay = row[timeWeekDayCol] ? row[timeWeekDayCol].toString().trim() : '';
-      const room = row[roomCol] ? row[roomCol].toString().trim() : '';
-
-      const timeSlots = parseTimeWeekDay(timeWeekDay);
-
-      timeSlots.forEach(slot => {
-        courses.push({
-          courseCode: courseName,
-          day: slot.day,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          room: room
-        });
-      });
+    if (courses.length === 0) {
+      return res.status(400).json({ error: 'No course data found in the file. Please check the file format.' });
     }
 
     res.json(courses);
@@ -174,7 +339,16 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running' });
 });
 function generateScheduleHTML(courses) {
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  // Check if there are any Friday courses
+  const hasFridayCourses = courses.some(course => course.day === 'Friday');
+  
+  // Build days array starting with Sunday, include Friday only if there are Friday courses
+  let days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+  if (hasFridayCourses) {
+    days.push('Friday');
+  }
+  days.push('Saturday');
+  
   const timeSlots = [];
 
   for (let hour = 8; hour <= 19; hour++) {

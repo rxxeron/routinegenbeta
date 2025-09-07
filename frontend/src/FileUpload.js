@@ -22,11 +22,18 @@ const FileUpload = ({ onDataReceived, onError, onLoadingChange }) => {
     const allowedTypes = [
       'text/csv',
       'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/pdf',
+      'image/jpeg',
+      'image/jpg',
+      'image/png'
     ];
     
-    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.csv')) {
-      onError('Please upload a CSV or Excel file');
+    const allowedExtensions = ['.csv', '.xlsx', '.xls', '.pdf', '.jpg', '.jpeg', '.png'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+      onError('Please upload a CSV, Excel, PDF, or Image (JPG/PNG) file');
       return;
     }
 
@@ -72,7 +79,7 @@ const FileUpload = ({ onDataReceived, onError, onLoadingChange }) => {
         <input
           type="file"
           id="file-input"
-          accept=".csv,.xlsx,.xls"
+          accept=".csv,.xlsx,.xls,.pdf,.jpg,.jpeg,.png"
           onChange={handleFileSelect}
           style={{ display: 'none' }}
         />
@@ -93,7 +100,7 @@ const FileUpload = ({ onDataReceived, onError, onLoadingChange }) => {
         
         {!selectedFile && (
           <p className="upload-instruction">
-            Upload your Advising Slip - it will be processed automatically
+            Upload your Advising Slip (CSV, Excel, PDF, or Image) - it will be processed automatically
           </p>
         )}
       </div>
