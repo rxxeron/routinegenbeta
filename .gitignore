@@ -104,3 +104,4 @@ Thumbs.db
 # Local test files
 test-schedule.csv
 demo.html
+.vercel
