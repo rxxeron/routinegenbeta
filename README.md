@@ -5,7 +5,8 @@ A full-stack MERN application that parses university advising slips (CSV files) 
 ## Features
 
 - Upload multiple file formats: CSV, Excel (.xlsx/.xls), PDF, and Images (JPG/PNG)
-- Advanced OCR text extraction from images and PDFs
+- **Interactive Data Verification**: Review and edit extracted data from PDF/image uploads before generating schedule
+- Advanced OCR text extraction from images and PDFs using Tesseract.js
 - Parse course information including course codes, times, days, and rooms
 - Display courses in a visual weekly calendar grid starting with Sunday
 - Intelligent Friday inclusion (only shows Friday if courses are scheduled)
@@ -13,6 +14,8 @@ A full-stack MERN application that parses university advising slips (CSV files) 
 - Color-coded course blocks for easy identification
 - Support for multi-day courses (e.g., TR for Tuesday/Thursday, MW for Monday/Wednesday)
 - Enhanced day code mapping including Friday support (F = Friday)
+- **Smart day code grouping** for complex course schedules
+- **Real-time data editing** with validation and error correction
 
 ## Project Structure
 
@@ -22,11 +25,13 @@ RoutineGen/
 ├── package.json           # Backend dependencies
 ├── frontend/
 │   ├── src/
-│   │   ├── App.js         # Main React component
-│   │   ├── FileUpload.js  # File upload component
-│   │   ├── RoutineTable.js # Schedule display component
-│   │   ├── App.css        # Styling
-│   │   └── index.js       # React entry point
+│   │   ├── App.js              # Main React component with workflow management
+│   │   ├── FileUpload.js       # File upload component with multi-format support
+│   │   ├── EditableDataTable.js # Interactive data verification component (NEW)
+│   │   ├── RoutineTable.js     # Schedule display component
+│   │   ├── App.css             # Main styling
+│   │   ├── EditableDataTable.css # Data verification styling (NEW)
+│   │   └── index.js            # React entry point
 │   ├── public/
 │   │   └── index.html     # HTML template
 │   └── package.json       # Frontend dependencies
@@ -100,9 +105,20 @@ The application uses the following day code mapping:
 
 1. Make sure both backend and frontend servers are running
 2. Open your browser and go to `http://localhost:3000`
-3. Click "Choose File" and select your university advising slip CSV file
+3. Click "Choose File" and select your university schedule file
+
+### For CSV/Excel Files:
 4. Click "Upload & Process" to parse the file
-5. View your weekly schedule in the visual calendar grid
+5. View your weekly schedule in the visual calendar grid immediately
+
+### For PDF/Image Files:
+4. Click "Upload & Process" to parse the file with OCR
+5. **NEW**: Review the extracted data in the interactive verification table
+6. Edit any incorrect course codes, times, days, or room information
+7. Add new courses or delete unwanted entries as needed
+8. Click "Confirm & Generate Schedule" to create your visual calendar
+
+The application automatically detects your file type and provides the appropriate workflow!
 
 ## Supported File Formats
 
@@ -131,21 +147,24 @@ MAT102,,,MWF 11:50AM-1:20PM,,,AB3-401
 
 ### Image Files (.jpg, .jpeg, .png)
 - Images of course schedules or advising slips
-- Uses OCR (Optical Character Recognition) to extract text
+- Uses OCR (Optical Character Recognition) to extract text with Tesseract.js
+- **Interactive verification** allows you to review and correct OCR results
 - Works best with clear, high-contrast images
 - Recommended: scan documents at 300 DPI or higher for best results
+- **NEW**: Editable table interface for data validation before schedule generation
 
 ## API Endpoints
 
 ### POST /api/upload
 - Accepts multipart form data with various file formats:
-  - CSV files (.csv)
-  - Excel files (.xlsx, .xls)
-  - PDF files (.pdf) with automatic text extraction
-  - Image files (.jpg, .jpeg, .png) with OCR processing
+  - CSV files (.csv) - Direct processing to schedule
+  - Excel files (.xlsx, .xls) - Direct processing to schedule  
+  - PDF files (.pdf) with automatic text extraction - **Verification workflow**
+  - Image files (.jpg, .jpeg, .png) with OCR processing - **Verification workflow**
 - Returns JSON array of parsed course objects
 - Each course object contains: courseCode, day, startTime, endTime, room
 - Automatically detects file type and applies appropriate parsing method
+- **NEW**: PDF/Image files trigger interactive data verification step
 
 ### GET /api/health
 - Health check endpoint
