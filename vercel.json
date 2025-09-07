@@ -11,5 +11,13 @@
       "src": "/(.*)",
       "dest": "/server.js"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "testing": true
+    }
+  },
+  "github": {
+    "autoAlias": false
+  }
 }

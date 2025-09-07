@@ -57,8 +57,20 @@ const FileUpload = ({ onDataReceived, onError, onLoadingChange }) => {
       }
     } catch (error) {
       console.error('Upload error:', error);
-      if (error.response && error.response.data && error.response.data.error) {
-        onError(error.response.data.error);
+      if (error.response && error.response.data) {
+        const errorData = error.response.data;
+        let errorMessage = errorData.error || 'Unknown error occurred';
+        
+        // Add additional details if available
+        if (errorData.details) {
+          errorMessage += '\n\nDetails: ' + errorData.details;
+        }
+        
+        if (errorData.fileType) {
+          errorMessage += '\n\nFile type detected: ' + errorData.fileType;
+        }
+        
+        onError(errorMessage);
       } else {
         onError('Failed to upload and process file. Please make sure the backend server is running.');
       }
