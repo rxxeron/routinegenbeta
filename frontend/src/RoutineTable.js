@@ -27,7 +27,15 @@ const RoutineTable = ({ schedule, courses }) => {
     '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM'
   ];
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  // Check if there are any Friday courses
+  const hasFridayCourses = schedule.some(course => course.day === 'Friday');
+  
+  // Build days array starting with Sunday, include Friday only if there are Friday courses
+  let days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+  if (hasFridayCourses) {
+    days.push('Friday');
+  }
+  days.push('Saturday');
 
   // Get unique courses for color assignment
   const uniqueCourses = [...new Set(schedule.map(course => course.courseCode))];
