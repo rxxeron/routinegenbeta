@@ -8,6 +8,40 @@ const pdfParse = require('pdf-parse');
 const Tesseract = require('tesseract.js');
 const sharp = require('sharp');
 
+// Google Document AI setup
+const { DocumentProcessorServiceClient } = require('@google-cloud/documentai').v1;
+const GOOGLE_PROJECT_ID = 'routinegenparse';
+const GOOGLE_LOCATION = 'us'; // Change if needed
+const GOOGLE_PROCESSOR_ID = '674477949cb16d50'; // Set by user
+const GOOGLE_KEY_PATH = path.join(__dirname, 'google-service-account.json');
+const documentaiClient = new DocumentProcessorServiceClient({ keyFile: GOOGLE_KEY_PATH });
+
+async function parseWithDocumentAI(buffer, mimetype) {
+  const name = `projects/${GOOGLE_PROJECT_ID}/locations/${GOOGLE_LOCATION}/processors/${GOOGLE_PROCESSOR_ID}`;
+  const request = {
+    name,
+    rawDocument: {
+      content: buffer,
+      mimeType: mimetype,
+    },
+  };
+  try {
+    const [result] = await documentaiClient.processDocument(request);
+    return result.document;
+  } catch (error) {
+    console.error('Document AI error:', error);
+    throw new Error('Failed to parse document with Google Document AI: ' + error.message);
+  }
+}
+
+function extractCourseDataFromDocumentAI(documentJson) {
+  let textContent = '';
+  if (documentJson && documentJson.text) {
+    textContent = documentJson.text;
+  }
+  return extractCourseDataFromText(textContent);
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -248,76 +282,95 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       courses = extractCourseDataFromText(text);
     } else if (req.file.mimetype.startsWith('image/')) {
       console.log('Processing image file with OCR...');
-      const text = await parseImageContent(req.file.buffer, req.file.mimetype);
-      courses = extractCourseDataFromText(text);
-    } else if (req.file.mimetype.includes('sheet') || req.file.mimetype.includes('excel') || 
-               req.file.originalname.toLowerCase().endsWith('.csv') ||
-               req.file.originalname.toLowerCase().endsWith('.xlsx') ||
-               req.file.originalname.toLowerCase().endsWith('.xls')) {
-      console.log('Processing Excel/CSV file...');
-      
-      const workbook = xlsx.read(req.file.buffer);
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const data = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
-
-      let headerRowIndex = -1;
-      for (let i = 0; i < data.length; i++) {
-        const row = data[i];
-        if (row && row.some(cell => cell && cell.toString().includes('Course(s)'))) {
-          headerRowIndex = i;
-          break;
+      // Use Google Document AI for PDFs and images
+      if (req.file.mimetype === 'application/pdf' || req.file.mimetype.startsWith('image/')) {
+        console.log('Processing file with Google Document AI...');
+        try {
+          const documentJson = await parseWithDocumentAI(req.file.buffer, req.file.mimetype);
+          courses = extractCourseDataFromDocumentAI(documentJson);
+        } catch (err) {
+          console.error('Document AI processing failed, falling back to local parsing:', err);
+          // Fallback to local parsing if Document AI fails
+          if (req.file.mimetype === 'application/pdf') {
+            const text = await parsePDFContent(req.file.buffer);
+            courses = extractCourseDataFromText(text);
+          } else if (req.file.mimetype.startsWith('image/')) {
+            const text = await parseImageContent(req.file.buffer, req.file.mimetype);
+            courses = extractCourseDataFromText(text);
+          }
         }
-      }
-
-      if (headerRowIndex === -1) {
-        console.log('Could not find Course(s) header');
-        return res.status(400).json({ error: 'Could not find Course(s) header in the file' });
-      }
-
-      const headerRow = data[headerRowIndex];
-      
-      let courseNameCol = -1;
-      let timeWeekDayCol = -1;
-      let roomCol = -1;
-
-      for (let i = 0; i < headerRow.length; i++) {
-        const cell = headerRow[i];
-        if (cell && cell.toString().includes('Course(s)')) {
-          courseNameCol = i;
-          console.log('Course column found at:', i);
-        } else if (cell && cell.toString().includes('Time-WeekDay')) {
-          timeWeekDayCol = i;
-          console.log('Time-WeekDay column found at:', i);
-        } else if (cell && cell.toString().includes('Room')) {
-          roomCol = i;
-          console.log('Room column found at:', i);
-        }
-      }
-
-      console.log('Column indices - Course:', courseNameCol, 'Time:', timeWeekDayCol, 'Room:', roomCol);
-
-      for (let i = headerRowIndex + 1; i < data.length; i++) {
-        const row = data[i];
+      } else if (req.file.mimetype.includes('sheet') || req.file.mimetype.includes('excel') || 
+             req.file.originalname.toLowerCase().endsWith('.csv') ||
+             req.file.originalname.toLowerCase().endsWith('.xlsx') ||
+             req.file.originalname.toLowerCase().endsWith('.xls')) {
+        console.log('Processing Excel/CSV file...');
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        let sheetName = workbook.SheetNames[0];
+        let data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
         
-        if (!row || !row[courseNameCol] || row[courseNameCol].toString().trim() === '') {
-          break;
+        // Find the row with headers
+        let headerRowIndex = -1;
+        for (let i = 0; i < data.length; i++) {
+          const row = data[i];
+          if (row && row.length > 0 && row[0].toString().trim().toLowerCase() === 'course(s)') {
+            headerRowIndex = i;
+            break;
+          }
         }
 
-        const courseName = row[courseNameCol].toString().trim();
-        const timeWeekDay = row[timeWeekDayCol] ? row[timeWeekDayCol].toString().trim() : '';
-        const room = row[roomCol] ? row[roomCol].toString().trim() : '';
+        if (headerRowIndex === -1) {
+          console.log('Could not find Course(s) header');
+          return res.status(400).json({ error: 'Could not find Course(s) header in the file' });
+        }
 
-        const timeSlots = parseTimeWeekDay(timeWeekDay);
+        const headerRow = data[headerRowIndex];
+        
+        let courseNameCol = -1;
+        let timeWeekDayCol = -1;
+        let roomCol = -1;
 
-        timeSlots.forEach(slot => {
-          courses.push({
-            courseCode: courseName,
-            day: slot.day,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            room: room
+        for (let i = 0; i < headerRow.length; i++) {
+          const cell = headerRow[i];
+          if (cell && cell.toString().includes('Course(s)')) {
+            courseNameCol = i;
+            console.log('Course column found at:', i);
+          } else if (cell && cell.toString().includes('Time-WeekDay')) {
+            timeWeekDayCol = i;
+            console.log('Time-WeekDay column found at:', i);
+          } else if (cell && cell.toString().includes('Room')) {
+            roomCol = i;
+            console.log('Room column found at:', i);
+          }
+        }
+
+        console.log('Column indices - Course:', courseNameCol, 'Time:', timeWeekDayCol, 'Room:', roomCol);
+
+        for (let i = headerRowIndex + 1; i < data.length; i++) {
+          const row = data[i];
+          
+          if (!row || !row[courseNameCol] || row[courseNameCol].toString().trim() === '') {
+            break;
+          }
+
+          const courseName = row[courseNameCol].toString().trim();
+          const timeWeekDay = row[timeWeekDayCol] ? row[timeWeekDayCol].toString().trim() : '';
+          const room = row[roomCol] ? row[roomCol].toString().trim() : '';
+
+          const timeSlots = parseTimeWeekDay(timeWeekDay);
+
+          timeSlots.forEach(slot => {
+            courses.push({
+              courseCode: courseName,
+              day: slot.day,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              room: room
+            });
           });
+        }
+      } else {
+        return res.status(400).json({ 
+          error: 'Unsupported file type. Please upload CSV, Excel (.xlsx/.xls), PDF, or Image (JPG/PNG) files.' 
         });
       }
     } else {
