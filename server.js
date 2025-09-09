@@ -10,13 +10,31 @@ const sharp = require('sharp');
 
 // Google Document AI setup
 const { DocumentProcessorServiceClient } = require('@google-cloud/documentai').v1;
-const GOOGLE_PROJECT_ID = 'routinegenparse';
-const GOOGLE_LOCATION = 'us'; // Change if needed
-const GOOGLE_PROCESSOR_ID = '674477949cb16d50'; // Set by user
-const GOOGLE_KEY_PATH = path.join(__dirname, 'google-service-account.json');
-const documentaiClient = new DocumentProcessorServiceClient({ keyFile: GOOGLE_KEY_PATH });
+const GOOGLE_PROJECT_ID = process.env.GOOGLE_PROJECT_ID || 'routinegenparse';
+const GOOGLE_LOCATION = process.env.GOOGLE_LOCATION || 'us';
+const GOOGLE_PROCESSOR_ID = process.env.GOOGLE_PROCESSOR_ID || '674477949cb16d50';
+
+// Initialize Document AI client
+let documentaiClient;
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+  // For Vercel deployment - use environment variable
+  const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+  documentaiClient = new DocumentProcessorServiceClient({ credentials });
+} else {
+  // For local development - use service account file
+  const GOOGLE_KEY_PATH = path.join(__dirname, 'google-service-account.json');
+  if (fs.existsSync(GOOGLE_KEY_PATH)) {
+    documentaiClient = new DocumentProcessorServiceClient({ keyFile: GOOGLE_KEY_PATH });
+  } else {
+    console.warn('Google Document AI credentials not found. Document AI features will be disabled.');
+  }
+}
 
 async function parseWithDocumentAI(buffer, mimetype) {
+  if (!documentaiClient) {
+    throw new Error('Google Document AI client not initialized. Please check credentials.');
+  }
+  
   const name = `projects/${GOOGLE_PROJECT_ID}/locations/${GOOGLE_LOCATION}/processors/${GOOGLE_PROCESSOR_ID}`;
   const request = {
     name,
