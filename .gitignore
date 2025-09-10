@@ -16,6 +16,7 @@ frontend/build/
 
 # Google Cloud credentials
 google-service-account.json
+routinegenparse-*.json
 
 # Logs
 npm-debug.log*

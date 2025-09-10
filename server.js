@@ -22,11 +22,14 @@ if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
   documentaiClient = new DocumentProcessorServiceClient({ credentials });
 } else {
   // For local development - use service account file
-  const GOOGLE_KEY_PATH = path.join(__dirname, 'google-service-account.json');
+  const GOOGLE_KEY_PATH = path.join(__dirname, 'routinegenparse-daf0563066b5.json');
   if (fs.existsSync(GOOGLE_KEY_PATH)) {
+    console.log('✅ Found Google Cloud service account key:', GOOGLE_KEY_PATH);
     documentaiClient = new DocumentProcessorServiceClient({ keyFile: GOOGLE_KEY_PATH });
+    console.log('✅ Google Document AI client initialized successfully');
   } else {
-    console.warn('Google Document AI credentials not found. Document AI features will be disabled.');
+    console.warn('❌ Google Document AI credentials not found. Document AI features will be disabled.');
+    console.warn('Expected file path:', GOOGLE_KEY_PATH);
   }
 }
 
