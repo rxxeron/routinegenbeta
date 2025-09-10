@@ -22,14 +22,11 @@ if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
   documentaiClient = new DocumentProcessorServiceClient({ credentials });
 } else {
   // For local development - use service account file
-  const GOOGLE_KEY_PATH = path.join(__dirname, 'routinegenparse-daf0563066b5.json');
+  const GOOGLE_KEY_PATH = path.join(__dirname, 'google-service-account.json');
   if (fs.existsSync(GOOGLE_KEY_PATH)) {
-    console.log('✅ Found Google Cloud service account key:', GOOGLE_KEY_PATH);
     documentaiClient = new DocumentProcessorServiceClient({ keyFile: GOOGLE_KEY_PATH });
-    console.log('✅ Google Document AI client initialized successfully');
   } else {
-    console.warn('❌ Google Document AI credentials not found. Document AI features will be disabled.');
-    console.warn('Expected file path:', GOOGLE_KEY_PATH);
+    console.warn('Google Document AI credentials not found. Document AI features will be disabled.');
   }
 }
 
@@ -544,6 +541,64 @@ function extractCourseDataFromText(textContent) {
   return courses;
 }
 
+// Helper function to determine extraction method
+function getExtractionMethod(mimetype) {
+  if (mimetype === 'application/pdf') {
+    return documentaiClient ? 'Google Document AI (PDF)' : 'Local PDF Parser';
+  } else if (mimetype.startsWith('image/')) {
+    return documentaiClient ? 'Google Document AI (OCR)' : 'Local Tesseract OCR';
+  } else if (mimetype.includes('sheet') || mimetype.includes('excel') || mimetype === 'text/csv') {
+    return 'Excel/CSV Parser';
+  }
+  return 'Unknown';
+}
+
+// Helper function to calculate extraction confidence
+function calculateExtractionConfidence(courses, mimetype) {
+  if (courses.length === 0) return 0;
+  
+  let score = 0;
+  let totalChecks = 0;
+  
+  courses.forEach(course => {
+    // Check course code format
+    if (course.courseCode && /^[A-Z]{2,4}\d{3,4}/.test(course.courseCode)) {
+      score += 20;
+    }
+    totalChecks += 20;
+    
+    // Check day format
+    if (course.day && /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/i.test(course.day)) {
+      score += 15;
+    }
+    totalChecks += 15;
+    
+    // Check time format
+    if (course.startTime && course.endTime && 
+        /^\d{2}:\d{2}$/.test(course.startTime) && /^\d{2}:\d{2}$/.test(course.endTime)) {
+      score += 15;
+    }
+    totalChecks += 15;
+    
+    // Check room format (optional but adds confidence)
+    if (course.room && course.room.length > 0 && course.room !== 'No room') {
+      score += 5;
+    }
+    totalChecks += 5;
+  });
+  
+  const baseConfidence = totalChecks > 0 ? (score / totalChecks) * 100 : 0;
+  
+  // Adjust confidence based on extraction method
+  if (mimetype.includes('sheet') || mimetype.includes('excel') || mimetype === 'text/csv') {
+    return Math.min(95, baseConfidence + 10); // Excel/CSV is usually more reliable
+  } else if (documentaiClient && (mimetype === 'application/pdf' || mimetype.startsWith('image/'))) {
+    return Math.min(90, baseConfidence + 5); // Document AI is good but may need verification
+  } else {
+    return Math.min(75, baseConfidence); // Local parsing is less reliable
+  }
+}
+
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -667,7 +722,23 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     }
 
     console.log(`✅ Successfully extracted ${courses.length} course entries`);
-    res.json(courses);
+    
+    // Enhanced response with metadata for verification
+    const response = {
+      courses: courses,
+      metadata: {
+        fileName: req.file.originalname,
+        fileType: req.file.mimetype,
+        fileSize: req.file.size,
+        extractedCount: courses.length,
+        extractionMethod: getExtractionMethod(req.file.mimetype),
+        needsVerification: req.file.mimetype === 'application/pdf' || req.file.mimetype.startsWith('image/'),
+        timestamp: new Date().toISOString(),
+        confidence: calculateExtractionConfidence(courses, req.file.mimetype)
+      }
+    };
+    
+    res.json(response);
 
   } catch (error) {
     console.error('❌ Error parsing file:', error);

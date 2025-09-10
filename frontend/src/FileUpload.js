@@ -50,14 +50,42 @@ const FileUpload = ({ onDataReceived, onError, onLoadingChange }) => {
         },
       });
 
-      if (response.data && response.data.length > 0) {
-        // Pass both data and file info to parent component
-        const fileInfo = {
-          name: file.name,
-          type: file.type,
-          size: file.size
-        };
-        onDataReceived(response.data, fileInfo);
+      if (response.data) {
+        // Handle new response format with metadata
+        let courses, metadata;
+        
+        if (response.data.courses && response.data.metadata) {
+          // New format with metadata
+          courses = response.data.courses;
+          metadata = response.data.metadata;
+        } else if (Array.isArray(response.data)) {
+          // Legacy format - direct array
+          courses = response.data;
+          metadata = {
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            extractedCount: courses.length,
+            extractionMethod: 'Legacy',
+            needsVerification: file.type === 'application/pdf' || file.type.startsWith('image/'),
+            confidence: 75
+          };
+        } else {
+          throw new Error('Unexpected response format');
+        }
+
+        if (courses && courses.length > 0) {
+          // Pass both data and enhanced file info to parent component
+          const fileInfo = {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            ...metadata
+          };
+          onDataReceived(courses, fileInfo);
+        } else {
+          onError('No course data found in the file. Please check the file format.');
+        }
       } else {
         onError('No course data found in the file. Please check the file format.');
       }

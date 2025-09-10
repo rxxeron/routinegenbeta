@@ -11,24 +11,32 @@ function App() {
   const [error, setError] = useState('');
   const [showDataVerification, setShowDataVerification] = useState(false);
   const [extractedData, setExtractedData] = useState([]);
+  const [fileMetadata, setFileMetadata] = useState(null);
 
   const handleDataReceived = (data, fileInfo = null) => {
     // Check if this is data from a PDF or image that needs verification
+    // Use metadata if available, otherwise fall back to file type detection
     const needsVerification = fileInfo && (
+      fileInfo.needsVerification === true ||
       fileInfo.type === 'application/pdf' || 
-      fileInfo.type.startsWith('image/')
+      fileInfo.type.startsWith('image/') ||
+      (fileInfo.confidence && fileInfo.confidence < 85)
     );
 
     if (needsVerification) {
-      // Show data verification step for PDF/Image files
+      // Show data verification step for PDF/Image files or low confidence results
       setExtractedData(data);
       setShowDataVerification(true);
       setRoutineData([]);
+      
+      // Store file info for verification display
+      setFileMetadata(fileInfo);
     } else {
-      // Direct flow for CSV/Excel files
+      // Direct flow for CSV/Excel files or high confidence results
       setRoutineData(data);
       setShowDataVerification(false);
       setExtractedData([]);
+      setFileMetadata(null);
     }
     setError('');
   };
@@ -38,6 +46,7 @@ function App() {
     setRoutineData(confirmedData);
     setShowDataVerification(false);
     setExtractedData([]);
+    setFileMetadata(null);
   };
 
   const handleDataVerificationCancel = () => {
@@ -45,6 +54,7 @@ function App() {
     setShowDataVerification(false);
     setExtractedData([]);
     setRoutineData([]);
+    setFileMetadata(null);
   };
 
   const handleError = (errorMessage) => {
@@ -52,6 +62,7 @@ function App() {
     setRoutineData([]);
     setShowDataVerification(false);
     setExtractedData([]);
+    setFileMetadata(null);
   };
 
   const handleLoadingChange = (isLoading) => {
@@ -63,6 +74,7 @@ function App() {
     setShowDataVerification(false);
     setExtractedData([]);
     setError('');
+    setFileMetadata(null);
   };
 
   const handleExportPDF = async () => {
@@ -499,10 +511,42 @@ function App() {
         {/* Data Verification Section - Show for PDF/Image uploads */}
         {showDataVerification && extractedData.length > 0 && (
           <div className="verification-section">
+            {fileMetadata && (
+              <div className="extraction-info">
+                <h3>📋 Please Verify Extracted Data</h3>
+                <div className="metadata-display">
+                  <div className="metadata-item">
+                    <strong>File:</strong> {fileMetadata.fileName || fileMetadata.name}
+                  </div>
+                  <div className="metadata-item">
+                    <strong>Extraction Method:</strong> {fileMetadata.extractionMethod || 'Unknown'}
+                  </div>
+                  <div className="metadata-item">
+                    <strong>Confidence:</strong> 
+                    <span className={`confidence-score ${fileMetadata.confidence >= 85 ? 'high' : fileMetadata.confidence >= 65 ? 'medium' : 'low'}`}>
+                      {fileMetadata.confidence ? Math.round(fileMetadata.confidence) : 'N/A'}%
+                    </span>
+                  </div>
+                  <div className="metadata-item">
+                    <strong>Courses Found:</strong> {fileMetadata.extractedCount || extractedData.length}
+                  </div>
+                </div>
+                <p className="verification-instructions">
+                  {fileMetadata.confidence < 65 ? 
+                    "⚠️ Low confidence detected. Please carefully review and edit the extracted data below." :
+                    fileMetadata.confidence < 85 ?
+                    "⚡ Medium confidence. Please verify the extracted information is correct." :
+                    "✅ High confidence extraction. Please verify the data before proceeding."
+                  }
+                </p>
+              </div>
+            )}
+            
             <EditableDataTable
               extractedData={extractedData}
               onConfirm={handleDataConfirmed}
               onCancel={handleDataVerificationCancel}
+              fileMetadata={fileMetadata}
             />
 
             {loading && (

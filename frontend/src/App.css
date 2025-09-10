@@ -1820,3 +1820,107 @@ body {
   }
 }
 
+/* Data Verification Styles */
+.verification-section {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  margin: var(--spacing-lg) 0;
+  box-shadow: var(--shadow-md);
+  border: 2px solid var(--ewu-secondary);
+}
+
+.extraction-info {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  border-left: 4px solid var(--ewu-secondary);
+}
+
+.extraction-info h3 {
+  color: var(--ewu-primary);
+  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.metadata-display {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.metadata-item {
+  background: white;
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  border: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.metadata-item strong {
+  color: var(--ewu-primary);
+  font-weight: var(--font-weight-medium);
+  min-width: 100px;
+}
+
+.confidence-score {
+  font-weight: var(--font-weight-bold);
+  padding: 0.25rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+}
+
+.confidence-score.high {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.confidence-score.medium {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.confidence-score.low {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.verification-instructions {
+  background: rgba(255, 255, 255, 0.8);
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  border: 1px solid rgba(23, 162, 184, 0.3);
+}
+
+/* Responsive adjustments for verification */
+@media (max-width: 768px) {
+  .verification-section {
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+  }
+  
+  .metadata-display {
+    grid-template-columns: 1fr;
+  }
+  
+  .metadata-item {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: center;
+  }
+  
+  .metadata-item strong {
+    min-width: auto;
+  }
+}
+
