@@ -332,6 +332,117 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
+// API upload endpoint (for frontend compatibility)
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ 
+        error: 'No file uploaded' 
+      });
+    }
+
+    const { buffer, originalname, mimetype } = req.file;
+    console.log(`📄 API Upload: ${originalname} (${mimetype})`);
+
+    let courses = [];
+    let extractionMethod = 'Local Parsing';
+    
+    // Handle different file types
+    if (mimetype === 'application/pdf') {
+      console.log('Processing PDF with local parser...');
+      const text = await parsePDFContent(buffer);
+      courses = extractCourseDataFromText(text);
+      extractionMethod = 'Local PDF Parser';
+    } else if (mimetype.startsWith('image/')) {
+      console.log('Processing image with local OCR...');
+      const text = await parseImageContent(buffer);
+      courses = extractCourseDataFromText(text);
+      extractionMethod = 'Local Tesseract OCR';
+    } else if (mimetype.includes('sheet') || mimetype.includes('excel') || originalname.toLowerCase().endsWith('.csv')) {
+      console.log('Processing Excel/CSV file...');
+      const result = parseExcelFile(buffer, originalname);
+      courses = result.courses;
+      extractionMethod = 'Local Excel/CSV Parser';
+    } else {
+      return res.status(400).json({ 
+        error: 'Unsupported file type. Please upload CSV, Excel, PDF, or Image files.' 
+      });
+    }
+
+    if (courses.length === 0) {
+      return res.status(400).json({ 
+        error: 'No course data found in the file. Please check the file format.',
+        fileType: mimetype,
+        fileName: originalname
+      });
+    }
+
+    // Return with metadata format that frontend expects
+    const response = {
+      courses: courses,
+      metadata: {
+        fileName: originalname,
+        fileType: mimetype,
+        extractedCount: courses.length,
+        extractionMethod: extractionMethod,
+        needsVerification: mimetype === 'application/pdf' || mimetype.startsWith('image/'),
+        confidence: calculateExtractionConfidence(courses, ''),
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    console.log(`✅ Successfully extracted ${courses.length} courses using ${extractionMethod}`);
+    res.json(response);
+
+  } catch (error) {
+    console.error('API Upload error:', error);
+    res.status(500).json({ 
+      error: 'Error processing file: ' + error.message,
+      fileType: req.file?.mimetype || 'unknown',
+      fileName: req.file?.originalname || 'unknown'
+    });
+  }
+});
+
+// Debug endpoint for Vercel troubleshooting
+app.get('/api/debug', (req, res) => {
+  res.json({
+    status: 'Debug info',
+    node_version: process.version,
+    platform: process.platform,
+    memory: process.memoryUsage(),
+    uptime: process.uptime(),
+    env_vars: {
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: process.env.PORT,
+      VERCEL: process.env.VERCEL || 'false'
+    },
+    dependencies_loaded: {
+      express: !!express,
+      cors: !!cors,
+      multer: !!multer,
+      xlsx: !!xlsx,
+      pdfParse: !!pdfParse,
+      tesseract: !!Tesseract,
+      sharp: !!sharp
+    }
+  });
+});
+
+// API Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'Server is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    parsing_methods: {
+      pdf: 'pdf-parse (local)',
+      images: 'Tesseract OCR (local)',
+      excel_csv: 'xlsx parser (local)'
+    }
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
