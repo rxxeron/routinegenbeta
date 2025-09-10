@@ -35,16 +35,7 @@ async function parseWithDocumentAI(buffer, mimetype) {
     throw new Error('Google Document AI client not initialized. Please check credentials.');
   }
   
-  console.log('🔧 Document AI Processing Details:');
-  console.log('- Project ID:', GOOGLE_PROJECT_ID);
-  console.log('- Location:', GOOGLE_LOCATION);
-  console.log('- Processor ID:', GOOGLE_PROCESSOR_ID);
-  console.log('- File mime type:', mimetype);
-  console.log('- Buffer size:', buffer.length);
-  
   const name = `projects/${GOOGLE_PROJECT_ID}/locations/${GOOGLE_LOCATION}/processors/${GOOGLE_PROCESSOR_ID}`;
-  console.log('- Full processor name:', name);
-  
   const request = {
     name,
     rawDocument: {
@@ -52,53 +43,234 @@ async function parseWithDocumentAI(buffer, mimetype) {
       mimeType: mimetype,
     },
   };
-  
   try {
-    console.log('📤 Sending request to Google Document AI...');
     const [result] = await documentaiClient.processDocument(request);
-    console.log('📥 Document AI response received');
-    console.log('- Document text length:', result.document?.text?.length || 0);
-    console.log('- Number of pages:', result.document?.pages?.length || 0);
-    console.log('- Number of entities:', result.document?.entities?.length || 0);
-    
     return result.document;
   } catch (error) {
-    console.error('❌ Document AI error details:', {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      details: error.details
-    });
+    console.error('Document AI error:', error);
     throw new Error('Failed to parse document with Google Document AI: ' + error.message);
   }
 }
 
 function extractCourseDataFromDocumentAI(documentJson) {
-  console.log('🔍 Extracting course data from Document AI response...');
+  console.log('Processing Document AI response...');
   
   let textContent = '';
   if (documentJson && documentJson.text) {
     textContent = documentJson.text;
-    console.log('✅ Raw text extracted from Document AI');
-    console.log('- Text length:', textContent.length);
-    console.log('- First 300 characters:', textContent.substring(0, 300));
-  } else {
-    console.log('❌ No text found in Document AI response');
-    console.log('- Document structure:', Object.keys(documentJson || {}));
-    return [];
   }
   
-  // Try to extract structured data first (if available)
-  if (documentJson.entities && documentJson.entities.length > 0) {
-    console.log('📋 Found', documentJson.entities.length, 'entities in Document AI response');
-    // Could add entity-based extraction here in the future
+  // Try structured parsing first for university advising slips
+  const structuredCourses = extractStructuredCourseData(textContent);
+  if (structuredCourses.length > 0) {
+    console.log('✅ Successfully extracted courses using structured parsing');
+    return structuredCourses;
   }
   
-  // Fall back to text parsing
-  console.log('📄 Using text-based parsing for course extraction...');
-  const courses = extractCourseDataFromText(textContent);
-  console.log('📚 Courses extracted:', courses.length);
+  // Fallback to general text parsing
+  console.log('Falling back to general text parsing...');
+  return extractCourseDataFromText(textContent);
+}
+
+function extractStructuredCourseData(textContent) {
+  console.log('=== ADVANCED DOCUMENT AI PARSER ===');
+  const courses = [];
+  const lines = textContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   
+  // Step 1: Extract course information from the structured table
+  const courseData = new Map();
+  let currentCourseCode = null;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Look for course codes in various formats
+    // Format 1: Standard course code (ENG7102, MAT102, PHY109)
+    if (line.match(/^[A-Z]{2,4}\d{3,4}$/)) {
+      currentCourseCode = line;
+      console.log(`Found course: ${currentCourseCode}`);
+      
+      if (!courseData.has(currentCourseCode)) {
+        courseData.set(currentCourseCode, {
+          courseCode: currentCourseCode,
+          schedules: [],
+          rooms: []
+        });
+      }
+    }
+    
+    // Format 2: Spaced course code (ICE 109 -> ICE109)
+    else if (line.match(/^[A-Z]{2,4}\s+\d{3,4}$/)) {
+      currentCourseCode = line.replace(/\s+/g, '');
+      console.log(`Found spaced course: ${line} -> ${currentCourseCode}`);
+      
+      if (!courseData.has(currentCourseCode)) {
+        courseData.set(currentCourseCode, {
+          courseCode: currentCourseCode,
+          schedules: [],
+          rooms: []
+        });
+      }
+    }
+    
+    // Format 3: Lab courses
+    else if (line.match(/^[A-Z]{2,4}\d{3,4}\s+Lab$/)) {
+      currentCourseCode = line;
+      console.log(`Found lab course: ${currentCourseCode}`);
+      
+      if (!courseData.has(currentCourseCode)) {
+        courseData.set(currentCourseCode, {
+          courseCode: currentCourseCode,
+          schedules: [],
+          rooms: []
+        });
+      }
+    }
+  }
+  
+  console.log('Course data:', Array.from(courseData.keys()));
+  
+  // Step 2: Extract schedule information
+  const schedulePatterns = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Pattern 1: Tuition + Days + Time (15000.00 MW 4:50PM-6:20PM)
+    const tuitionPattern = /^(\d+\.\d+)\s+([SMTWRFA]+)\s+(\d{1,2}:\d{2}[AP]M)-(\d{1,2}:\d{2}[AP]M)$/;
+    const tuitionMatch = line.match(tuitionPattern);
+    
+    if (tuitionMatch) {
+      const [, tuition, days, startTime, endTime] = tuitionMatch;
+      schedulePatterns.push({
+        type: 'tuition-schedule',
+        tuition: tuition,
+        days: days,
+        startTime: startTime,
+        endTime: endTime,
+        lineIndex: i,
+        line: line
+      });
+      console.log(`Schedule found: ${line}`);
+    }
+    
+    // Pattern 2: Day + Time only (S 8:00AM-10:00AM)
+    const dayTimePattern = /^([SMTWRFA])\s+(\d{1,2}:\d{2}[AP]M)-(\d{1,2}:\d{2}[AP]M)$/;
+    const dayTimeMatch = line.match(dayTimePattern);
+    
+    if (dayTimeMatch) {
+      const [, day, startTime, endTime] = dayTimeMatch;
+      schedulePatterns.push({
+        type: 'day-schedule',
+        days: day,
+        startTime: startTime,
+        endTime: endTime,
+        lineIndex: i,
+        line: line
+      });
+      console.log(`Day schedule found: ${line}`);
+    }
+  }
+  
+  console.log('Schedule patterns:', schedulePatterns);
+  
+  // Step 3: Extract room information
+  const roomPatterns = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Room patterns: 221, AB3-302, FUB-801, etc.
+    if (line.match(/^([A-Z]*\d+[A-Z]*-?\d*|[A-Z]+-\d+)$/) && 
+        !line.includes('.') && 
+        !line.match(/^\d{4}-\d-\d{2}-\d{3}$/) && 
+        line !== 'Room' && 
+        line !== 'Remarks' &&
+        !line.match(/^\d+\.\d+$/)) {
+      roomPatterns.push({
+        room: line,
+        lineIndex: i
+      });
+      console.log(`Room found: ${line} at line ${i}`);
+    }
+  }
+  
+  // Step 4: Smart association for university advising slips
+  console.log('=== ASSOCIATING SCHEDULES WITH COURSES ===');
+  
+  // For university advising slips, we use a hybrid approach:
+  // 1. Try proximity-based association
+  // 2. Fall back to pattern matching for known formats
+  
+  const courseList = Array.from(courseData.keys());
+  
+  schedulePatterns.forEach((schedule, scheduleIndex) => {
+    console.log(`\nProcessing schedule ${scheduleIndex}: ${schedule.line}`);
+    
+    // Find the closest course before this schedule
+    let associatedCourse = null;
+    let bestDistance = Infinity;
+    
+    courseList.forEach(courseCode => {
+      // Find the line index of this course
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i] === courseCode || 
+            lines[i].replace(/\s+/g, '') === courseCode) {
+          
+          const distance = schedule.lineIndex - i;
+          if (distance > 0 && distance < bestDistance) {
+            bestDistance = distance;
+            associatedCourse = courseCode;
+          }
+          break;
+        }
+      }
+    });
+    
+    if (associatedCourse) {
+      console.log(`Associated with course: ${associatedCourse} (distance: ${bestDistance})`);
+      
+      // Parse days
+      const dayArray = [];
+      for (let j = 0; j < schedule.days.length; j++) {
+        const dayCode = schedule.days[j];
+        if (DAY_MAPPING[dayCode]) {
+          dayArray.push(DAY_MAPPING[dayCode]);
+        }
+      }
+      
+      // Find the best room near this schedule
+      let room = '';
+      let bestRoomDistance = Infinity;
+      
+      roomPatterns.forEach(roomPattern => {
+        const roomDistance = Math.abs(roomPattern.lineIndex - schedule.lineIndex);
+        if (roomDistance < bestRoomDistance && roomDistance <= 10) {
+          bestRoomDistance = roomDistance;
+          room = roomPattern.room;
+        }
+      });
+      
+      // Create course entries for each day
+      dayArray.forEach(day => {
+        const courseEntry = {
+          courseCode: associatedCourse,
+          day: day,
+          startTime: convertTo24Hour(schedule.startTime.replace(/\s/g, '')),
+          endTime: convertTo24Hour(schedule.endTime.replace(/\s/g, '')),
+          room: room,
+          tuition: schedule.tuition || ''
+        };
+        
+        courses.push(courseEntry);
+        console.log('Added course:', courseEntry);
+      });
+    } else {
+      console.log(`No associated course found for schedule: ${schedule.line}`);
+    }
+  });
+  
+  console.log(`\nAdvanced parsing found ${courses.length} courses`);
   return courses;
 }
 
@@ -112,18 +284,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
-app.get('/api/debug', (req, res) => {
-  res.json({
-    nodeEnv: process.env.NODE_ENV,
-    hasGoogleCredentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON,
-    googleProjectId: process.env.GOOGLE_PROJECT_ID,
-    googleLocation: process.env.GOOGLE_LOCATION,
-    googleProcessorId: process.env.GOOGLE_PROCESSOR_ID,
-    documentaiClientAvailable: !!documentaiClient,
-    timestamp: new Date().toISOString()
-  });
-});
-
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -253,31 +413,47 @@ function extractCourseDataFromText(textContent) {
   const lines = textContent.split('\n');
   const courses = [];
   
-  // Multiple regex patterns to try different formats
+  // Enhanced regex patterns for different document formats
   const patterns = [
-    // Pattern 1: Course code, day codes, time range (e.g., "CSE101 TR 10:00AM-11:30AM")
+    // Pattern 1: University advising slip format with tuition (e.g., "15000.00 MW 4:50PM-6:20PM")
+    /(\d+\.\d+)\s+([SMTWRFA]+)\s+(\d{1,2}:\d{2}[AP]M)-(\d{1,2}:\d{2}[AP]M)/,
+    
+    // Pattern 2: Standard course format (e.g., "CSE101 TR 10:00AM-11:30AM")
     /([A-Z]{2,4}\d{3,4}[A-Za-z\s]*)\s+([SMTWRFA]+)\s+(\d{1,2}:\d{2}[AP]M)-(\d{1,2}:\d{2}[AP]M)/,
     
-    // Pattern 2: More flexible course code, day codes, time range
+    // Pattern 3: More flexible course code, day codes, time range
     /([A-Z]{2,6}\d{3,4}[A-Za-z\s]*)\s+([SMTWRFA]+)\s+(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)/,
     
-    // Pattern 3: Course code with spaces, then days and times
+    // Pattern 4: Course code with spaces, then days and times
     /([A-Z]{2,4}\s*\d{3,4}[A-Za-z\s]*)\s+([SMTWRFA]+)\s+(\d{1,2}:\d{2}[AP]M)\s*-\s*(\d{1,2}:\d{2}[AP]M)/,
     
-    // Pattern 4: Look for Time-WeekDay pattern (like Excel format)
+    // Pattern 5: Look for Time-WeekDay pattern (like Excel format)
     /([A-Z]{2,6}\d{3,4}[A-Za-z\s]*).+?([SMTWRFA]+)\s+(\d{1,2}:\d{2}[AP]M)-(\d{1,2}:\d{2}[AP]M)/,
     
-    // Pattern 5: Look for course followed by day and time on same or next line
-    /([A-Z]{2,4}\d{3,4}[A-Za-z\s]*).{0,50}([SMTWRFA]+).{0,20}(\d{1,2}:\d{2}[AP]M).{0,5}(\d{1,2}:\d{2}[AP]M)/
+    // Pattern 6: Day and time only (for when course code is on previous line)
+    /^([SMTWRFA]+)\s+(\d{1,2}:\d{2}[AP]M)-(\d{1,2}:\d{2}[AP]M)/,
+    
+    // Pattern 7: Lab schedule format (e.g., "S 8:00AM-10:00AM")
+    /([SMTWRFA])\s+(\d{1,2}:\d{2}[AP]M)-(\d{1,2}:\d{2}[AP]M)/
   ];
   
   console.log('Processing', lines.length, 'lines of text...');
   
+  let lastCourseCode = '';
+  
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (line.length < 5) continue; // Skip very short lines
+    if (line.length < 3) continue; // Skip very short lines
     
     console.log(`Line ${i}: "${line}"`);
+    
+    // First, check if this line contains a course code
+    const courseCodePattern = /([A-Z]{2,4}\d{3,4}(?:\s+Lab)?)/;
+    const courseCodeMatch = line.match(courseCodePattern);
+    if (courseCodeMatch) {
+      lastCourseCode = courseCodeMatch[1].trim();
+      console.log('Found course code:', lastCourseCode);
+    }
     
     // Try each pattern
     for (let patternIndex = 0; patternIndex < patterns.length; patternIndex++) {
@@ -287,10 +463,27 @@ function extractCourseDataFromText(textContent) {
       if (courseMatch) {
         console.log(`✅ Match found with pattern ${patternIndex + 1}:`, courseMatch);
         
-        const [, courseCode, dayString, startTime, endTime] = courseMatch;
+        let courseCode, dayString, startTime, endTime;
+        
+        if (patternIndex === 0) {
+          // Pattern 1: tuition amount, days, time - use last found course code
+          [, , dayString, startTime, endTime] = courseMatch;
+          courseCode = lastCourseCode || 'Unknown';
+        } else if (patternIndex === 5 || patternIndex === 6) {
+          // Pattern 6 & 7: Day and time only - use last found course code
+          if (courseMatch.length === 4) {
+            [, dayString, startTime, endTime] = courseMatch;
+          } else {
+            [, courseCode, dayString, startTime, endTime] = courseMatch;
+          }
+          if (!courseCode) courseCode = lastCourseCode || 'Unknown';
+        } else {
+          // Other patterns: standard format
+          [, courseCode, dayString, startTime, endTime] = courseMatch;
+        }
         
         // Clean up the extracted data
-        const cleanCourseCode = courseCode.trim().replace(/\s+/g, ' ');
+        const cleanCourseCode = courseCode ? courseCode.trim().replace(/\s+/g, ' ') : 'Unknown';
         const cleanDayString = dayString.trim();
         const cleanStartTime = startTime.trim().replace(/\s/g, '');
         const cleanEndTime = endTime.trim().replace(/\s/g, '');
@@ -313,6 +506,18 @@ function extractCourseDataFromText(textContent) {
         
         console.log('Mapped days:', days);
         
+        // Look for room information in nearby lines
+        let room = '';
+        for (let k = Math.max(0, i-2); k <= Math.min(lines.length-1, i+2); k++) {
+          const nearbyLine = lines[k].trim();
+          // Room pattern (alphanumeric, possibly with hyphens)
+          const roomPattern = /^([A-Z]*\d+[A-Z]*-?\d*|FUB-\d+|AB\d+-\d+)$/;
+          if (roomPattern.test(nearbyLine) && nearbyLine !== cleanCourseCode) {
+            room = nearbyLine;
+            break;
+          }
+        }
+        
         // Create course entries for each day
         days.forEach(day => {
           const courseEntry = {
@@ -320,7 +525,7 @@ function extractCourseDataFromText(textContent) {
             day: day,
             startTime: convertTo24Hour(cleanStartTime),
             endTime: convertTo24Hour(cleanEndTime),
-            room: '' // Room info may need additional parsing
+            room: room
           };
           
           courses.push(courseEntry);
@@ -348,119 +553,101 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     let courses = [];
     
     // Handle different file types
-    if (req.file.mimetype === 'application/pdf' || req.file.mimetype.startsWith('image/')) {
-      console.log('🚀 Processing file with Google Document AI...');
-      console.log('📁 File details:', {
-        name: req.file.originalname,
-        type: req.file.mimetype,
-        size: req.file.size,
-        documentaiAvailable: !!documentaiClient
-      });
-      
-      try {
-        if (!documentaiClient) {
-          throw new Error('Document AI client not initialized - check environment variables');
+    if (req.file.mimetype === 'application/pdf') {
+      console.log('Processing PDF file...');
+      const text = await parsePDFContent(req.file.buffer);
+      courses = extractCourseDataFromText(text);
+    } else if (req.file.mimetype.startsWith('image/')) {
+      console.log('Processing image file with OCR...');
+      // Use Google Document AI for PDFs and images
+      if (req.file.mimetype === 'application/pdf' || req.file.mimetype.startsWith('image/')) {
+        console.log('Processing file with Google Document AI...');
+        try {
+          const documentJson = await parseWithDocumentAI(req.file.buffer, req.file.mimetype);
+          courses = extractCourseDataFromDocumentAI(documentJson);
+        } catch (err) {
+          console.error('Document AI processing failed, falling back to local parsing:', err);
+          // Fallback to local parsing if Document AI fails
+          if (req.file.mimetype === 'application/pdf') {
+            const text = await parsePDFContent(req.file.buffer);
+            courses = extractCourseDataFromText(text);
+          } else if (req.file.mimetype.startsWith('image/')) {
+            const text = await parseImageContent(req.file.buffer, req.file.mimetype);
+            courses = extractCourseDataFromText(text);
+          }
         }
+      } else if (req.file.mimetype.includes('sheet') || req.file.mimetype.includes('excel') || 
+             req.file.originalname.toLowerCase().endsWith('.csv') ||
+             req.file.originalname.toLowerCase().endsWith('.xlsx') ||
+             req.file.originalname.toLowerCase().endsWith('.xls')) {
+        console.log('Processing Excel/CSV file...');
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+        let sheetName = workbook.SheetNames[0];
+        let data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
         
-        console.log('📤 Sending to Google Document AI...');
-        const documentJson = await parseWithDocumentAI(req.file.buffer, req.file.mimetype);
-        
-        console.log('📥 Document AI processing complete');
-        courses = extractCourseDataFromDocumentAI(documentJson);
-        
-        console.log('✅ Course extraction complete:', {
-          coursesFound: courses.length,
-          courses: courses.slice(0, 3) // Log first 3 courses for debugging
-        });
-        
-        if (courses.length === 0) {
-          console.log('⚠️ No courses found via Document AI, trying fallback...');
-          throw new Error('No courses extracted from Document AI');
-        }
-      } catch (err) {
-        console.error('❌ Document AI processing failed:', err.message);
-        console.log('🔄 Attempting local parsing fallback...');
-        
-        // Fallback to local parsing if Document AI fails
-        if (req.file.mimetype === 'application/pdf') {
-          console.log('📄 Using PDF fallback parser...');
-          const text = await parsePDFContent(req.file.buffer);
-          courses = extractCourseDataFromText(text);
-        } else if (req.file.mimetype.startsWith('image/')) {
-          console.log('🖼️ Using OCR fallback parser...');
-          const text = await parseImageContent(req.file.buffer, req.file.mimetype);
-          courses = extractCourseDataFromText(text);
-        }
-        console.log('🔄 Fallback parsing completed. Courses found:', courses.length);
-      }
-    } else if (req.file.mimetype.includes('sheet') || req.file.mimetype.includes('excel') || 
-               req.file.originalname.toLowerCase().endsWith('.csv') ||
-               req.file.originalname.toLowerCase().endsWith('.xlsx') ||
-               req.file.originalname.toLowerCase().endsWith('.xls')) {
-      console.log('Processing Excel/CSV file...');
-      
-      const workbook = xlsx.read(req.file.buffer);
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const data = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
-
-      let headerRowIndex = -1;
-      for (let i = 0; i < data.length; i++) {
-        const row = data[i];
-        if (row && row.some(cell => cell && cell.toString().includes('Course(s)'))) {
-          headerRowIndex = i;
-          break;
-        }
-      }
-
-      if (headerRowIndex === -1) {
-        console.log('Could not find Course(s) header');
-        return res.status(400).json({ error: 'Could not find Course(s) header in the file' });
-      }
-
-      const headerRow = data[headerRowIndex];
-      
-      let courseNameCol = -1;
-      let timeWeekDayCol = -1;
-      let roomCol = -1;
-
-      for (let i = 0; i < headerRow.length; i++) {
-        const cell = headerRow[i];
-        if (cell && cell.toString().includes('Course(s)')) {
-          courseNameCol = i;
-          console.log('Course column found at:', i);
-        } else if (cell && cell.toString().includes('Time-WeekDay')) {
-          timeWeekDayCol = i;
-          console.log('Time-WeekDay column found at:', i);
-        } else if (cell && cell.toString().includes('Room')) {
-          roomCol = i;
-          console.log('Room column found at:', i);
-        }
-      }
-
-      console.log('Column indices - Course:', courseNameCol, 'Time:', timeWeekDayCol, 'Room:', roomCol);
-
-      for (let i = headerRowIndex + 1; i < data.length; i++) {
-        const row = data[i];
-        
-        if (!row || !row[courseNameCol] || row[courseNameCol].toString().trim() === '') {
-          break;
+        // Find the row with headers
+        let headerRowIndex = -1;
+        for (let i = 0; i < data.length; i++) {
+          const row = data[i];
+          if (row && row.length > 0 && row[0].toString().trim().toLowerCase() === 'course(s)') {
+            headerRowIndex = i;
+            break;
+          }
         }
 
-        const courseName = row[courseNameCol].toString().trim();
-        const timeWeekDay = row[timeWeekDayCol] ? row[timeWeekDayCol].toString().trim() : '';
-        const room = row[roomCol] ? row[roomCol].toString().trim() : '';
+        if (headerRowIndex === -1) {
+          console.log('Could not find Course(s) header');
+          return res.status(400).json({ error: 'Could not find Course(s) header in the file' });
+        }
 
-        const timeSlots = parseTimeWeekDay(timeWeekDay);
+        const headerRow = data[headerRowIndex];
+        
+        let courseNameCol = -1;
+        let timeWeekDayCol = -1;
+        let roomCol = -1;
 
-        timeSlots.forEach(slot => {
-          courses.push({
-            courseCode: courseName,
-            day: slot.day,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            room: room
+        for (let i = 0; i < headerRow.length; i++) {
+          const cell = headerRow[i];
+          if (cell && cell.toString().includes('Course(s)')) {
+            courseNameCol = i;
+            console.log('Course column found at:', i);
+          } else if (cell && cell.toString().includes('Time-WeekDay')) {
+            timeWeekDayCol = i;
+            console.log('Time-WeekDay column found at:', i);
+          } else if (cell && cell.toString().includes('Room')) {
+            roomCol = i;
+            console.log('Room column found at:', i);
+          }
+        }
+
+        console.log('Column indices - Course:', courseNameCol, 'Time:', timeWeekDayCol, 'Room:', roomCol);
+
+        for (let i = headerRowIndex + 1; i < data.length; i++) {
+          const row = data[i];
+          
+          if (!row || !row[courseNameCol] || row[courseNameCol].toString().trim() === '') {
+            break;
+          }
+
+          const courseName = row[courseNameCol].toString().trim();
+          const timeWeekDay = row[timeWeekDayCol] ? row[timeWeekDayCol].toString().trim() : '';
+          const room = row[roomCol] ? row[roomCol].toString().trim() : '';
+
+          const timeSlots = parseTimeWeekDay(timeWeekDay);
+
+          timeSlots.forEach(slot => {
+            courses.push({
+              courseCode: courseName,
+              day: slot.day,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              room: room
+            });
           });
+        }
+      } else {
+        return res.status(400).json({ 
+          error: 'Unsupported file type. Please upload CSV, Excel (.xlsx/.xls), PDF, or Image (JPG/PNG) files.' 
         });
       }
     } else {
