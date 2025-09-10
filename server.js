@@ -555,28 +555,30 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     // Handle different file types
     if (req.file.mimetype === 'application/pdf') {
       console.log('Processing PDF file...');
-      const text = await parsePDFContent(req.file.buffer);
-      courses = extractCourseDataFromText(text);
+      // Try Document AI first for PDFs
+      try {
+        console.log('Processing PDF with Google Document AI...');
+        const documentJson = await parseWithDocumentAI(req.file.buffer, req.file.mimetype);
+        courses = extractCourseDataFromDocumentAI(documentJson);
+      } catch (err) {
+        console.error('Document AI processing failed for PDF, falling back to text extraction:', err);
+        const text = await parsePDFContent(req.file.buffer);
+        courses = extractCourseDataFromText(text);
+      }
     } else if (req.file.mimetype.startsWith('image/')) {
-      console.log('Processing image file with OCR...');
-      // Use Google Document AI for PDFs and images
-      if (req.file.mimetype === 'application/pdf' || req.file.mimetype.startsWith('image/')) {
-        console.log('Processing file with Google Document AI...');
-        try {
-          const documentJson = await parseWithDocumentAI(req.file.buffer, req.file.mimetype);
-          courses = extractCourseDataFromDocumentAI(documentJson);
-        } catch (err) {
-          console.error('Document AI processing failed, falling back to local parsing:', err);
-          // Fallback to local parsing if Document AI fails
-          if (req.file.mimetype === 'application/pdf') {
-            const text = await parsePDFContent(req.file.buffer);
-            courses = extractCourseDataFromText(text);
-          } else if (req.file.mimetype.startsWith('image/')) {
-            const text = await parseImageContent(req.file.buffer, req.file.mimetype);
-            courses = extractCourseDataFromText(text);
-          }
-        }
-      } else if (req.file.mimetype.includes('sheet') || req.file.mimetype.includes('excel') || 
+      console.log('Processing image file with Document AI...');
+      // Use Google Document AI for images (primary method)
+      try {
+        console.log('Processing image with Google Document AI...');
+        const documentJson = await parseWithDocumentAI(req.file.buffer, req.file.mimetype);
+        courses = extractCourseDataFromDocumentAI(documentJson);
+      } catch (err) {
+        console.error('Document AI processing failed for image, falling back to OCR:', err);
+        // Fallback to local OCR if Document AI fails
+        const text = await parseImageContent(req.file.buffer, req.file.mimetype);
+        courses = extractCourseDataFromText(text);
+      }
+    } else if (req.file.mimetype.includes('sheet') || req.file.mimetype.includes('excel') || 
              req.file.originalname.toLowerCase().endsWith('.csv') ||
              req.file.originalname.toLowerCase().endsWith('.xlsx') ||
              req.file.originalname.toLowerCase().endsWith('.xls')) {
@@ -645,15 +647,10 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
             });
           });
         }
-      } else {
+    } else {
         return res.status(400).json({ 
           error: 'Unsupported file type. Please upload CSV, Excel (.xlsx/.xls), PDF, or Image (JPG/PNG) files.' 
         });
-      }
-    } else {
-      return res.status(400).json({ 
-        error: 'Unsupported file type. Please upload CSV, Excel (.xlsx/.xls), PDF, or Image (JPG/PNG) files.' 
-      });
     }
 
     if (courses.length === 0) {
