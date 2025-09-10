@@ -1,11 +1,12 @@
 # RoutineGen - University Schedule Parser
 
-A full-stack MERN application that parses university advising slips (CSV files) and displays course schedules in a visual weekly calendar format.
+A full-stack MERN application that parses university advising slips and displays course schedules in a visual weekly calendar format using **local parsing only** - no cloud dependencies.
 
 ## Features
 
 - Upload multiple file formats: CSV, Excel (.xlsx/.xls), PDF, and Images (JPG/PNG)
-- Advanced OCR text extraction from images and PDFs
+- **Local PDF parsing** using pdf-parse library
+- **Local OCR** using Tesseract.js for image text extraction
 - Parse course information including course codes, times, days, and rooms
 - Display courses in a visual weekly calendar grid starting with Sunday
 - Intelligent Friday inclusion (only shows Friday if courses are scheduled)
