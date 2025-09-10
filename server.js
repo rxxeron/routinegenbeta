@@ -35,7 +35,16 @@ async function parseWithDocumentAI(buffer, mimetype) {
     throw new Error('Google Document AI client not initialized. Please check credentials.');
   }
   
+  console.log('🔧 Document AI Processing Details:');
+  console.log('- Project ID:', GOOGLE_PROJECT_ID);
+  console.log('- Location:', GOOGLE_LOCATION);
+  console.log('- Processor ID:', GOOGLE_PROCESSOR_ID);
+  console.log('- File mime type:', mimetype);
+  console.log('- Buffer size:', buffer.length);
+  
   const name = `projects/${GOOGLE_PROJECT_ID}/locations/${GOOGLE_LOCATION}/processors/${GOOGLE_PROCESSOR_ID}`;
+  console.log('- Full processor name:', name);
+  
   const request = {
     name,
     rawDocument: {
@@ -43,21 +52,54 @@ async function parseWithDocumentAI(buffer, mimetype) {
       mimeType: mimetype,
     },
   };
+  
   try {
+    console.log('📤 Sending request to Google Document AI...');
     const [result] = await documentaiClient.processDocument(request);
+    console.log('📥 Document AI response received');
+    console.log('- Document text length:', result.document?.text?.length || 0);
+    console.log('- Number of pages:', result.document?.pages?.length || 0);
+    console.log('- Number of entities:', result.document?.entities?.length || 0);
+    
     return result.document;
   } catch (error) {
-    console.error('Document AI error:', error);
+    console.error('❌ Document AI error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      details: error.details
+    });
     throw new Error('Failed to parse document with Google Document AI: ' + error.message);
   }
 }
 
 function extractCourseDataFromDocumentAI(documentJson) {
+  console.log('🔍 Extracting course data from Document AI response...');
+  
   let textContent = '';
   if (documentJson && documentJson.text) {
     textContent = documentJson.text;
+    console.log('✅ Raw text extracted from Document AI');
+    console.log('- Text length:', textContent.length);
+    console.log('- First 300 characters:', textContent.substring(0, 300));
+  } else {
+    console.log('❌ No text found in Document AI response');
+    console.log('- Document structure:', Object.keys(documentJson || {}));
+    return [];
   }
-  return extractCourseDataFromText(textContent);
+  
+  // Try to extract structured data first (if available)
+  if (documentJson.entities && documentJson.entities.length > 0) {
+    console.log('📋 Found', documentJson.entities.length, 'entities in Document AI response');
+    // Could add entity-based extraction here in the future
+  }
+  
+  // Fall back to text parsing
+  console.log('📄 Using text-based parsing for course extraction...');
+  const courses = extractCourseDataFromText(textContent);
+  console.log('📚 Courses extracted:', courses.length);
+  
+  return courses;
 }
 
 const app = express();
@@ -70,6 +112,18 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+app.get('/api/debug', (req, res) => {
+  res.json({
+    nodeEnv: process.env.NODE_ENV,
+    hasGoogleCredentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON,
+    googleProjectId: process.env.GOOGLE_PROJECT_ID,
+    googleLocation: process.env.GOOGLE_LOCATION,
+    googleProcessorId: process.env.GOOGLE_PROCESSOR_ID,
+    documentaiClientAvailable: !!documentaiClient,
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -294,101 +348,119 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     let courses = [];
     
     // Handle different file types
-    if (req.file.mimetype === 'application/pdf') {
-      console.log('Processing PDF file...');
-      const text = await parsePDFContent(req.file.buffer);
-      courses = extractCourseDataFromText(text);
-    } else if (req.file.mimetype.startsWith('image/')) {
-      console.log('Processing image file with OCR...');
-      // Use Google Document AI for PDFs and images
-      if (req.file.mimetype === 'application/pdf' || req.file.mimetype.startsWith('image/')) {
-        console.log('Processing file with Google Document AI...');
-        try {
-          const documentJson = await parseWithDocumentAI(req.file.buffer, req.file.mimetype);
-          courses = extractCourseDataFromDocumentAI(documentJson);
-        } catch (err) {
-          console.error('Document AI processing failed, falling back to local parsing:', err);
-          // Fallback to local parsing if Document AI fails
-          if (req.file.mimetype === 'application/pdf') {
-            const text = await parsePDFContent(req.file.buffer);
-            courses = extractCourseDataFromText(text);
-          } else if (req.file.mimetype.startsWith('image/')) {
-            const text = await parseImageContent(req.file.buffer, req.file.mimetype);
-            courses = extractCourseDataFromText(text);
-          }
+    if (req.file.mimetype === 'application/pdf' || req.file.mimetype.startsWith('image/')) {
+      console.log('🚀 Processing file with Google Document AI...');
+      console.log('📁 File details:', {
+        name: req.file.originalname,
+        type: req.file.mimetype,
+        size: req.file.size,
+        documentaiAvailable: !!documentaiClient
+      });
+      
+      try {
+        if (!documentaiClient) {
+          throw new Error('Document AI client not initialized - check environment variables');
         }
-      } else if (req.file.mimetype.includes('sheet') || req.file.mimetype.includes('excel') || 
-             req.file.originalname.toLowerCase().endsWith('.csv') ||
-             req.file.originalname.toLowerCase().endsWith('.xlsx') ||
-             req.file.originalname.toLowerCase().endsWith('.xls')) {
-        console.log('Processing Excel/CSV file...');
-        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-        let sheetName = workbook.SheetNames[0];
-        let data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
         
-        // Find the row with headers
-        let headerRowIndex = -1;
-        for (let i = 0; i < data.length; i++) {
-          const row = data[i];
-          if (row && row.length > 0 && row[0].toString().trim().toLowerCase() === 'course(s)') {
-            headerRowIndex = i;
-            break;
-          }
-        }
-
-        if (headerRowIndex === -1) {
-          console.log('Could not find Course(s) header');
-          return res.status(400).json({ error: 'Could not find Course(s) header in the file' });
-        }
-
-        const headerRow = data[headerRowIndex];
+        console.log('📤 Sending to Google Document AI...');
+        const documentJson = await parseWithDocumentAI(req.file.buffer, req.file.mimetype);
         
-        let courseNameCol = -1;
-        let timeWeekDayCol = -1;
-        let roomCol = -1;
+        console.log('📥 Document AI processing complete');
+        courses = extractCourseDataFromDocumentAI(documentJson);
+        
+        console.log('✅ Course extraction complete:', {
+          coursesFound: courses.length,
+          courses: courses.slice(0, 3) // Log first 3 courses for debugging
+        });
+        
+        if (courses.length === 0) {
+          console.log('⚠️ No courses found via Document AI, trying fallback...');
+          throw new Error('No courses extracted from Document AI');
+        }
+      } catch (err) {
+        console.error('❌ Document AI processing failed:', err.message);
+        console.log('🔄 Attempting local parsing fallback...');
+        
+        // Fallback to local parsing if Document AI fails
+        if (req.file.mimetype === 'application/pdf') {
+          console.log('📄 Using PDF fallback parser...');
+          const text = await parsePDFContent(req.file.buffer);
+          courses = extractCourseDataFromText(text);
+        } else if (req.file.mimetype.startsWith('image/')) {
+          console.log('🖼️ Using OCR fallback parser...');
+          const text = await parseImageContent(req.file.buffer, req.file.mimetype);
+          courses = extractCourseDataFromText(text);
+        }
+        console.log('🔄 Fallback parsing completed. Courses found:', courses.length);
+      }
+    } else if (req.file.mimetype.includes('sheet') || req.file.mimetype.includes('excel') || 
+               req.file.originalname.toLowerCase().endsWith('.csv') ||
+               req.file.originalname.toLowerCase().endsWith('.xlsx') ||
+               req.file.originalname.toLowerCase().endsWith('.xls')) {
+      console.log('Processing Excel/CSV file...');
+      
+      const workbook = xlsx.read(req.file.buffer);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
 
-        for (let i = 0; i < headerRow.length; i++) {
-          const cell = headerRow[i];
-          if (cell && cell.toString().includes('Course(s)')) {
-            courseNameCol = i;
-            console.log('Course column found at:', i);
-          } else if (cell && cell.toString().includes('Time-WeekDay')) {
-            timeWeekDayCol = i;
-            console.log('Time-WeekDay column found at:', i);
-          } else if (cell && cell.toString().includes('Room')) {
-            roomCol = i;
-            console.log('Room column found at:', i);
-          }
+      let headerRowIndex = -1;
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        if (row && row.some(cell => cell && cell.toString().includes('Course(s)'))) {
+          headerRowIndex = i;
+          break;
+        }
+      }
+
+      if (headerRowIndex === -1) {
+        console.log('Could not find Course(s) header');
+        return res.status(400).json({ error: 'Could not find Course(s) header in the file' });
+      }
+
+      const headerRow = data[headerRowIndex];
+      
+      let courseNameCol = -1;
+      let timeWeekDayCol = -1;
+      let roomCol = -1;
+
+      for (let i = 0; i < headerRow.length; i++) {
+        const cell = headerRow[i];
+        if (cell && cell.toString().includes('Course(s)')) {
+          courseNameCol = i;
+          console.log('Course column found at:', i);
+        } else if (cell && cell.toString().includes('Time-WeekDay')) {
+          timeWeekDayCol = i;
+          console.log('Time-WeekDay column found at:', i);
+        } else if (cell && cell.toString().includes('Room')) {
+          roomCol = i;
+          console.log('Room column found at:', i);
+        }
+      }
+
+      console.log('Column indices - Course:', courseNameCol, 'Time:', timeWeekDayCol, 'Room:', roomCol);
+
+      for (let i = headerRowIndex + 1; i < data.length; i++) {
+        const row = data[i];
+        
+        if (!row || !row[courseNameCol] || row[courseNameCol].toString().trim() === '') {
+          break;
         }
 
-        console.log('Column indices - Course:', courseNameCol, 'Time:', timeWeekDayCol, 'Room:', roomCol);
+        const courseName = row[courseNameCol].toString().trim();
+        const timeWeekDay = row[timeWeekDayCol] ? row[timeWeekDayCol].toString().trim() : '';
+        const room = row[roomCol] ? row[roomCol].toString().trim() : '';
 
-        for (let i = headerRowIndex + 1; i < data.length; i++) {
-          const row = data[i];
-          
-          if (!row || !row[courseNameCol] || row[courseNameCol].toString().trim() === '') {
-            break;
-          }
+        const timeSlots = parseTimeWeekDay(timeWeekDay);
 
-          const courseName = row[courseNameCol].toString().trim();
-          const timeWeekDay = row[timeWeekDayCol] ? row[timeWeekDayCol].toString().trim() : '';
-          const room = row[roomCol] ? row[roomCol].toString().trim() : '';
-
-          const timeSlots = parseTimeWeekDay(timeWeekDay);
-
-          timeSlots.forEach(slot => {
-            courses.push({
-              courseCode: courseName,
-              day: slot.day,
-              startTime: slot.startTime,
-              endTime: slot.endTime,
-              room: room
-            });
+        timeSlots.forEach(slot => {
+          courses.push({
+            courseCode: courseName,
+            day: slot.day,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            room: room
           });
-        }
-      } else {
-        return res.status(400).json({ 
-          error: 'Unsupported file type. Please upload CSV, Excel (.xlsx/.xls), PDF, or Image (JPG/PNG) files.' 
         });
       }
     } else {
